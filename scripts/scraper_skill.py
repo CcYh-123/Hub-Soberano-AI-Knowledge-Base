@@ -9,7 +9,6 @@ import os
 import json
 import datetime
 from pathlib import Path
-from logger_skill import create_logger
 
 # CONFIGURACIÓN
 ROOT_DIR = Path(__file__).parent.parent
@@ -18,28 +17,36 @@ DATA_DIR = ROOT_DIR / "data"
 # Crear carpeta /data si no existe
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-# Logger global para el módulo
-_module_logger = None
-
-def get_logger():
-    """Obtiene o crea el logger del módulo."""
-    global _module_logger
-    if _module_logger is None:
-        _module_logger = create_logger("scraper_skill")
-    return _module_logger
+# Importar logger de D002
+try:
+    from logger_skill import create_logger
+    logger = create_logger("scraper_skill")
+    
+    def log_event(level, message):
+        """Wrapper para compatibilidad con el código original."""
+        if level == "INFO":
+            logger.info(message)
+        elif level == "ERROR":
+            logger.error(message)
+        elif level == "SUCCESS":
+            logger.success(message)
+        elif level == "WARNING":
+            logger.warning(message)
+except ImportError:
+    # Fallback si no está disponible el logger
+    def log_event(level, message):
+        print(f"[{level}] {message}")
 
 def save_data(data, filename="raw_data.json"):
     """Guarda los datos extraídos en la carpeta /data"""
-    logger = get_logger()
     path = DATA_DIR / filename
-    
     try:
         with open(path, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=4, ensure_ascii=False)
-        logger.success(f"Datos guardados exitosamente en {filename}")
+        log_event("INFO", f"Datos guardados exitosamente en {filename}")
         return str(path)
     except Exception as e:
-        logger.error(f"Error al guardar datos en {filename}: {str(e)}")
+        log_event("ERROR", f"Error al guardar datos: {str(e)}")
         return None
 
 def mock_scrape(url):
@@ -47,8 +54,7 @@ def mock_scrape(url):
     Simulación de scrape (Sustituir por lógica de Apify/BeautifulSoup)
     Incluye manejo de errores para alimentar al Brain (D003).
     """
-    logger = get_logger()
-    logger.info(f"Iniciando extracción desde: {url}")
+    log_event("INFO", f"Iniciando extracción desde: {url}")
     
     try:
         # Simulación de éxito
@@ -62,74 +68,40 @@ def mock_scrape(url):
             }
             saved_path = save_data(result)
             if saved_path:
-                logger.success(f"Scraping completado exitosamente para {url}")
+                log_event("SUCCESS", f"Scraping completado exitosamente para {url}")
                 return result
             else:
-                logger.error("Fallo al guardar datos extraídos")
-                return None
+                raise Exception("Error al guardar datos extraídos")
         else:
             # Simulación de fallo para probar el Brain
             raise Exception("Estructura de sitio no reconocida o Error de Conexión")
             
     except Exception as e:
-        logger.error(f"Fallo en Scraper: {str(e)}")
+        log_event("ERROR", f"Fallo en Scraper: {str(e)}")
         print(f"⚠️ Error detectado. El Brain (D003) analizará esto en la próxima ejecución.")
         return None
     finally:
-        # Guardar log automáticamente
-        logger.save()
-
-def scrape_with_context(url, context_info=None):
-    """
-    Versión mejorada de scrape con contexto adicional.
-    
-    Args:
-        url: URL a extraer
-        context_info: Información adicional de contexto (dict)
-    
-    Returns:
-        Datos extraídos o None si falla
-    """
-    logger = get_logger()
-    logger.info(f"Scraping con contexto: {url}")
-    
-    if context_info:
-        logger.info(f"Contexto: {json.dumps(context_info, ensure_ascii=False)}")
-    
-    result = mock_scrape(url)
-    
-    if result and context_info:
-        result['context'] = context_info
-        save_data(result, f"scrape_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.json")
-    
-    return result
+        # Guardar log si está disponible
+        try:
+            logger.save()
+        except:
+            pass
 
 if __name__ == "__main__":
     # Prueba de ejecución
     print("\n" + "="*60)
-    print("🕷️  SCRAPER SKILL - Prueba de Ejecución")
+    print("🕷️  SCRAPER SKILL - Ejecución de Prueba")
     print("="*60 + "\n")
     
-    # Test 1: Scraping exitoso
-    print("Test 1: URL válida (Google)")
     test_url = "https://www.google.com"
+    print(f"📍 URL de prueba: {test_url}")
     result = mock_scrape(test_url)
-    print(f"Resultado: {'✅ Éxito' if result else '❌ Fallo'}\n")
     
-    # Test 2: Scraping con error
-    print("Test 2: URL inválida (para probar error handling)")
-    test_url_fail = "https://www.sitio-desconocido.com"
-    result_fail = mock_scrape(test_url_fail)
-    print(f"Resultado: {'✅ Éxito' if result_fail else '❌ Fallo (esperado)'}\n")
+    if result:
+        print(f"\n✅ Extracción exitosa")
+        print(f"📁 Datos guardados en: /data/raw_data.json")
+    else:
+        print(f"\n❌ Extracción fallida")
+        print(f"📝 Error registrado en logs para análisis del Brain")
     
-    # Test 3: Scraping con contexto
-    print("Test 3: Scraping con contexto adicional")
-    context = {"project": "Antigravity", "purpose": "Testing D004"}
-    result_context = scrape_with_context("https://www.google.com", context)
-    print(f"Resultado: {'✅ Éxito' if result_context else '❌ Fallo'}\n")
-    
-    print("="*60)
-    print("✅ Pruebas completadas")
-    print("📁 Revisa /data para ver los archivos generados")
-    print("📁 Revisa /executions para ver los logs")
-    print("="*60 + "\n")
+    print("\n" + "="*60 + "\n")
