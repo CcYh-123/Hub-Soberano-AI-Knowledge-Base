@@ -1,5 +1,5 @@
 # 🗺️ MAPA DEL SISTEMA ANTIGRAVITY
-**Última Actualización:** 2026-02-08 19:39:19
+**Última Actualización:** 2026-02-08 19:46:08
 **Directiva Base:** D001_Indexador
 
 ---
@@ -11,10 +11,12 @@
 - 📄 D004_Scraper.md
 - 📄 D005_Reporter.md
 - 📄 D006_Orquestador.md
+- 📄 D007_Comunicador.md
 
 
 ### 📂 /scripts
 - 📄 brain_skill.py
+- 📄 comms_skill.py
 - 📄 logger_skill.py
 - 📄 reporter_skill.py
 - 📄 scraper_skill.py

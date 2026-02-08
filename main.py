@@ -26,6 +26,7 @@ try:
     from scraper_skill import mock_scrape
     from brain_skill import create_brain
     from reporter_skill import generate_executive_report
+    from comms_skill import send_notification, send_mission_summary, send_critical_alert
 except ImportError as e:
     print(f"❌ Error importando módulos: {e}")
     print("   Asegúrate de que todos los scripts existen en /scripts")
@@ -171,6 +172,17 @@ class AntigravityOrchestrator:
             print(f"📁 Reporte generado: {report_path}")
             print("="*70 + "\n")
             
+            # ============================================================
+            # PASO 4: COMUNICACIÓN (D007 - Comms)
+            # ============================================================
+            self.run_step(
+                "D007_Comms: Notificación de Éxito",
+                send_mission_summary,
+                self.mission_name,
+                True,
+                len(self.results['steps_completed'])
+            )
+            
         except Exception as e:
             # ============================================================
             # MANEJO DE ERRORES - Aprendizaje del fallo
@@ -191,6 +203,12 @@ class AntigravityOrchestrator:
                 self.log("SUCCESS", "Brain procesó el error para aprendizaje futuro")
             except Exception as brain_error:
                 self.log("ERROR", f"Brain también falló: {str(brain_error)}")
+            
+            # Enviar alerta crítica
+            try:
+                send_critical_alert(str(e))
+            except:
+                pass
             
             self.results['success'] = False
             self.results['end_time'] = datetime.now().isoformat()
@@ -221,8 +239,8 @@ def main():
     """Punto de entrada principal del sistema Antigravity."""
     print("\n" + "🌌"*35)
     print("\n        A N T I G R A V I T Y   S Y S T E M")
-    print("              Orquestador Central v1.0")
-    print("                    Nivel 6")
+    print("              Orquestador Central v1.1")
+    print("                    Nivel 7")
     print("\n" + "🌌"*35 + "\n")
     
     # Ejecutar misión completa
@@ -246,7 +264,7 @@ def main():
             print(f"      ✗ {step_info['step']}: {step_info['error']}")
     
     print("="*70)
-    print("\n🔮 Sistema Antigravity - Nivel 6 Operativo\n")
+    print("\n🔮 Sistema Antigravity - Nivel 7 Operativo\n")
     
     return 0 if results['success'] else 1
 
