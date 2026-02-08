@@ -1,5 +1,5 @@
 # 🗺️ MAPA DEL SISTEMA ANTIGRAVITY
-**Última Actualización:** 2026-02-08 19:30:50
+**Última Actualización:** 2026-02-08 19:35:12
 **Directiva Base:** D001_Indexador
 
 ---
@@ -9,11 +9,13 @@
 - 📄 D002_Logger.md
 - 📄 D003_Cerebro.md
 - 📄 D004_Scraper.md
+- 📄 D005_Reporter.md
 
 
 ### 📂 /scripts
 - 📄 brain_skill.py
 - 📄 logger_skill.py
+- 📄 reporter_skill.py
 - 📄 scraper_skill.py
 - 📄 script_001_indexador.py
 - 📄 test_brain.py
