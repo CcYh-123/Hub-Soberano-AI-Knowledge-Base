@@ -1,5 +1,5 @@
 # 🗺️ MAPA DEL SISTEMA ANTIGRAVITY
-**Última Actualización:** 2026-02-08 19:35:12
+**Última Actualización:** 2026-02-08 19:39:19
 **Directiva Base:** D001_Indexador
 
 ---
@@ -10,6 +10,7 @@
 - 📄 D003_Cerebro.md
 - 📄 D004_Scraper.md
 - 📄 D005_Reporter.md
+- 📄 D006_Orquestador.md
 
 
 ### 📂 /scripts
