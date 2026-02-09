@@ -76,9 +76,30 @@ def parse_md_to_html(md_content):
     
     return html
 
+def load_sector_config():
+    """Carga la configuración del sector activo."""
+    config_path = ROOT_DIR / "config_sector.json"
+    if not config_path.exists():
+        return None
+    try:
+        import json
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+            return config
+    except:
+        return None
+
 def generate_web():
     """Genera el index.html en la carpeta docs."""
-    print("🌐 Iniciando Generación de Interfaz Web (D013)...")
+    print("🌐 Iniciando Generación de Interfaz Web Multi-Sector (D014)...")
+    
+    config = load_sector_config()
+    active_sector_key = config.get('active_sector', 'real_estate') if config else 'real_estate'
+    sectors = config.get('sectors', {}) if config else {}
+    active_sector = sectors.get(active_sector_key, {})
+    
+    sector_name = active_sector.get('name', 'General')
+    sector_icon = active_sector.get('icon', '📊')
     
     report_path = get_latest_report()
     if not report_path:
@@ -89,26 +110,47 @@ def generate_web():
     md_content = report_path.read_text(encoding='utf-8')
     content_html = parse_md_to_html(md_content)
     
+    # Generar Links de Navegación
+    nav_links = ""
+    for skey, sdata in sectors.items():
+        is_active = skey == active_sector_key
+        bg_class = "bg-indigo-600 text-white" if is_active else "text-gray-500 hover:text-indigo-600"
+        nav_links += f"""<a href="#" class="px-4 py-2 rounded-full text-sm font-bold transition {bg_class}">{sdata['icon']} {sdata['name'].upper()}</a>"""
+
     # Template Maestro con Tailwind CSS
     template = f"""<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Antigravity - Strategic Console</title>
+    <title>Antigravity - Multi-Sector Console</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
-        body {{ font-family: 'Inter', sans-serif; background-color: #f8fafc; }}
-        .glass {{ background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); }}
+        body {{ font-family: 'Inter', sans-serif; background-color: #f1f5f9; }}
+        .glass {{ background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }}
+        .nav-glass {{ background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(5px); }}
     </style>
 </head>
-<body class="p-4 md:p-12">
-    <div class="max-w-6xl mx-auto glass shadow-2xl rounded-3xl p-8 md:p-12 border border-white">
+<body class="p-0">
+    <!-- Navegación Superior -->
+    <nav class="sticky top-0 z-50 nav-glass border-b border-gray-200 py-4 px-8 mb-8">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold">A</div>
+                <span class="font-bold text-slate-800 tracking-tight">Antigravity</span>
+            </div>
+            <div class="flex space-x-2">
+                {nav_links}
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-6xl mx-auto glass shadow-2xl rounded-3xl p-8 md:p-12 border border-white mb-12">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-12">
             <div>
-                <span class="text-indigo-600 font-bold tracking-widest text-xs uppercase mb-2 block">Enterprise Real Estate Intelligence</span>
-                <h1 class="text-5xl font-extrabold text-slate-900 tracking-tight">Antigravity <span class="text-indigo-600">v1.3</span></h1>
+                <span class="text-indigo-600 font-bold tracking-widest text-xs uppercase mb-2 block">Enterprise {sector_name} Intelligence</span>
+                <h1 class="text-5xl font-extrabold text-slate-900 tracking-tight">Antigravity <span class="text-indigo-600">v1.4</span></h1>
             </div>
             <div class="mt-4 md:mt-0 text-right">
                 <p class="text-sm text-slate-500">Última actualización</p>
@@ -121,7 +163,7 @@ def generate_web():
         </div>
         
         <footer class="mt-20 pt-8 border-t border-slate-200 text-center text-slate-400 text-sm">
-            <p>Antigravity System &copy; 2026 | Arquitectura Soberana React + Supabase + FastAPI</p>
+            <p>Antigravity System &copy; 2026 | Arquitectura Multi-Sector D014</p>
         </footer>
     </div>
 </body>
@@ -132,8 +174,11 @@ def generate_web():
     
     # Guardar index.html
     INDEX_HTML.write_text(template, encoding='utf-8')
-    print(f"✅ Interfaz generada con éxito en: {INDEX_HTML}")
+    print(f"✅ Interfaz Multi-Sector generada con éxito en: {INDEX_HTML}")
     return True
+
+if __name__ == "__main__":
+    generate_web()
 
 if __name__ == "__main__":
     generate_web()

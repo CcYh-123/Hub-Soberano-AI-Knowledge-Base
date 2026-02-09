@@ -1,0 +1,33 @@
+{
+  "active_sector": "real_estate",
+  "sectors": {
+    "real_estate": {
+      "name": "Inmobiliaria",
+      "icon": "🏠",
+      "table_headers": ["Zona", "Precio", "Superficie m2", "Precio/m2", "Estado"],
+      "data_keys": ["zona", "precio", "m2", "precio_m2", "tag"],
+      "opportunity_threshold_label": "Precio/m2 < 1500 USD"
+    },
+    "pharmacy": {
+      "name": "Farmacia",
+      "icon": "💊",
+      "table_headers": ["Medicamento", "Laboratorio", "Precio", "Stock", "Estado"],
+      "data_keys": ["nombre", "laboratorio", "precio", "stock", "tag"],
+      "opportunity_threshold_label": "Bajo Stock / Precio Oferta"
+    },
+    "fashion": {
+      "name": "Moda",
+      "icon": "👗",
+      "table_headers": ["Prenda", "Colección", "Precio", "Talle/Color", "Estado"],
+      "data_keys": ["prenda", "coleccion", "precio", "detalle", "tag"],
+      "opportunity_threshold_label": "Liquidación Temporada"
+    },
+    "industry": {
+      "name": "Industria",
+      "icon": "🏭",
+      "table_headers": ["Máquina", "Mantenimiento", "Consumo", "OEE", "Estado"],
+      "data_keys": ["maquina", "ultima_revision", "consumo", "oee", "tag"],
+      "opportunity_threshold_label": "Eficiencia < 85%"
+    }
+  }
+}

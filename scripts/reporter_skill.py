@@ -136,8 +136,29 @@ def generate_insights(data_files, knowledge_content):
     return insights
 
 
+def load_sector_config():
+    """Carga la configuración del sector activo."""
+    config_path = ROOT_DIR / "config_sector.json"
+    if not config_path.exists():
+        return None
+    try:
+        import json
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+            active = config.get('active_sector', 'real_estate')
+            return config.get('sectors', {}).get(active)
+    except:
+        return None
+
 def generate_report(data_files, knowledge_content, insights, maintenance_report=None):
-    """Genera el reporte ejecutivo en formato Markdown."""
+    """Genera el reporte ejecutivo dinámico según el sector activo."""
+    # Cargar Configuración de Sector
+    sector = load_sector_config()
+    sector_name = sector.get('name', 'General') if sector else 'General'
+    sector_icon = sector.get('icon', '📊') if sector else '📊'
+    headers = sector.get('table_headers', ["Zona", "Precio", "Superficie m2", "Precio/m2", "Estado"]) if sector else ["Zona", "Precio", "Superficie m2", "Precio/m2", "Estado"]
+    keys = sector.get('data_keys', ["zona", "precio", "m2", "precio_m2", "tag"]) if sector else ["zona", "precio", "m2", "precio_m2", "tag"]
+
     execution_id = str(uuid.uuid4())[:8].upper()
     timestamp = datetime.now()
     date_str = timestamp.strftime("%Y%m%d")
@@ -146,20 +167,20 @@ def generate_report(data_files, knowledge_content, insights, maintenance_report=
     report_filename = f"REPORTE_EJECUTIVO_{date_str}.md"
     report_path = REPORTS_DIR / report_filename
     
-    log_event("INFO", f"Generando reporte: {report_filename}")
+    log_event("INFO", f"Generando reporte dinámico sector {sector_name}: {report_filename}")
     
     # Construir contenido del reporte
-    content = f"""# 📊 REPORTE EJECUTIVO ANTIGRAVITY
+    content = f"""# {sector_icon} REPORTE ESTRATÉGICO: {sector_name.upper()}
 
 **Fecha de Generación:** {datetime_str}  
 **ID de Ejecución:** {execution_id}  
-**Generado por:** D005_Reporter
+**Generado por:** D005_Reporter v1.4
 
 ---
 
 ## 📈 Resumen Ejecutivo
 
-Este reporte consolida los datos extraídos por el sistema Antigravity y las lecciones aprendidas por el Brain System.
+Este reporte consolida la inteligencia extraída para el sector **{sector_name}**, optimizando la visibilidad de activos y oportunidades.
 
 ---
 
@@ -167,25 +188,35 @@ Este reporte consolida los datos extraídos por el sistema Antigravity y las lec
 
 **Total de Archivos:** {len(data_files)}
 
+## {sector_icon} Análisis de {sector_name}
+
 """
-    
-    # Sección Inmobiliaria (D003/D004)
-    content += "## 🏠 Análisis de Propiedades Detectadas\n\n"
-    content += "| Zona | Precio | Superficie m2 | Precio/m2 | Estado |\n"
-    content += "|------|--------|---------------|-----------|--------|\n"
+
+    # Generar Tabla Dinámica
+    header_row = "| " + " | ".join(headers) + " |\n"
+    separator_row = "| " + " | ".join(["---"] * len(headers)) + " |\n"
+    content += header_row + separator_row
     
     for entry in data_files:
-        properties = entry.get('data', {}).get('properties', [])
-        for prop in properties:
-            zona = prop.get('zona', 'N/A')
-            precio = f"${prop.get('precio', 0):,}"
-            m2 = prop.get('m2', 0)
-            p_m2 = f"${prop.get('precio_m2', 0):,}"
-            tag = prop.get('tag', 'MERCADO')
-            # Resaltar oportunidades con emoji
-            tag_display = f"🚨 **{tag}**" if "OPORTUNIDAD" in tag else tag
+        # Intentar obtener propiedades o lista general
+        items = entry.get('data', {}).get('properties', entry.get('data', {}).get('products', []))
+        for item in items:
+            row_cells = []
+            tag_value = item.get('tag', 'MERCADO')
             
-            content += f"| {zona} | {precio} | {m2} | {p_m2} | {tag_display} |\n"
+            for key in keys:
+                val = item.get(key, 'N/A')
+                # Formateo si es precio
+                if 'precio' in key and isinstance(val, (int, float)):
+                    val = f"${val:,}"
+                
+                # Resaltado de tags
+                if key == 'tag':
+                    val = f"🚨 **{val}**" if "OPORTUNIDAD" in val or "ALERTA" in val else val
+                
+                row_cells.append(str(val))
+            
+            content += "| " + " | ".join(row_cells) + " |\n"
     
     content += "\n---\n\n## 💡 Insights Estratégicos\n\n"
     
