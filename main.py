@@ -10,6 +10,7 @@ Con trazabilidad completa vía Logger (D002) y actualización del Mapa (D001)
 ===============================================================================
 """
 
+import argparse
 import sys
 import os
 from datetime import datetime
@@ -20,7 +21,7 @@ ROOT_DIR = Path(__file__).parent
 SCRIPTS_DIR = ROOT_DIR / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
-# Importar skills del sistema
+# Importar skills del sistema (resto de imports igual)
 try:
     from logger_skill import create_logger
     from scraper_skill import mock_scrape
@@ -31,8 +32,6 @@ try:
     from notifier_skill import send_notification as send_external_notification
     from cleaner_skill import run_maintenance, get_maintenance_status
     from web_skill import generate_web
-    from cleaner_skill import run_maintenance, get_maintenance_status
-    from web_skill import generate_web
     from core.storage_engine import process_trends, load_history
 except ImportError as e:
     print(f"❌ Error importando módulos: {e}")
@@ -41,16 +40,6 @@ except ImportError as e:
 
 
 class AntigravityOrchestrator:
-    """
-    Orquestador Central del Sistema Antigravity.
-    
-    Coordina la ejecución secuencial de todos los subsistemas:
-    - Scraper (D004): Extracción de datos
-    - Brain (D003): Análisis y aprendizaje
-    - Reporter (D005): Generación de reportes
-    
-    Con trazabilidad completa vía Logger (D002).
-    """
     
     def __init__(self, mission_name: str = "FULL_CYCLE"):
         """
@@ -69,7 +58,6 @@ class AntigravityOrchestrator:
             'steps_failed': [],
             'success': False
         }
-    
     def log(self, level: str, message: str):
         """Registra un evento con el logger."""
         if level == "INFO":
@@ -84,14 +72,6 @@ class AntigravityOrchestrator:
     def run_step(self, step_name: str, step_function, *args, **kwargs):
         """
         Ejecuta un paso de la misión con manejo de errores.
-        
-        Args:
-            step_name: Nombre del paso
-            step_function: Función a ejecutar
-            *args, **kwargs: Argumentos para la función
-            
-        Returns:
-            Resultado de la función o None si falla
         """
         self.log("INFO", f"Iniciando paso: {step_name}")
         print(f"\n🔄 Ejecutando: {step_name}...")
@@ -112,30 +92,32 @@ class AntigravityOrchestrator:
             print(f"   ❌ {step_name} falló: {str(e)}")
             raise
     
-    def run_full_mission(self, target_url: str = "https://www.google.com"):
+    
+    def run_full_mission(self, target_url: str = "https://www.google.com", force: bool = False):
         """
         Ejecuta el ciclo completo de la misión Antigravity.
-        
-        Flujo: Scraper -> Brain -> Reporter
-        
         Args:
-            target_url: URL objetivo para el scraping
-            
-        Returns:
-            Diccionario con resultados de la misión
+            target_url: URL objetivo
+            force: Si es True, salta las restricciones de tiempo del scheduler.
         """
         print("\n" + "="*70)
         print("🚀 ANTIGRAVITY - ORQUESTADOR CENTRAL")
         print(f"📋 Misión: {self.mission_name}")
         print(f"⏰ Inicio: {self.start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+        if force:
+             print("\033[95m[BYPASS] MODO FORCE DETECTADO: Ejecutando auditoría completa ahora.\033[0m")
         print("="*70)
         
         self.log("INFO", f"=== INICIO DE MISIÓN: {self.mission_name} ===")
         self.log("INFO", f"URL objetivo: {target_url}")
+        if force:
+            self.log("WARNING", "EJECUCIÓN FORZADA ACTIVADA")
         
         maintenance_data = ""
         
         try:
+            # ... (Resto de pasos igual, pero pasando 'force' a check_scheduler implícitamente o explícitamente)
+
             # ============================================================
             # PASO 0: MANTENIMIENTO (D010 - Cleaner)
             # ============================================================
@@ -178,7 +160,7 @@ class AntigravityOrchestrator:
 
             # SCHEDULER CHECK (D020)
             history = load_history()
-            if not check_scheduler(active_sector, history):
+            if not check_scheduler(active_sector, history, force=force):
                 self.log("WARNING", f"⏳ SCHEDULER: Saltando ejecución de {active_sector}. Tiempo no cumplido.")
                 print(f"⏳ SCHEDULER: {active_sector} al día. Saltando ejecución.")
                 return # Detener misión completa
@@ -239,6 +221,8 @@ class AntigravityOrchestrator:
             
             print("\n" + "="*70)
             print("✅ MISIÓN COMPLETADA EXITOSAMENTE")
+            if force:
+                print("\033[95m[!] EJECUCIÓN FORZADA COMPLETADA\033[0m")
             print("="*70)
             print(f"📊 Pasos ejecutados: {len(self.results['steps_completed'])}")
             print(f"📁 Reporte generado: {report_path}")
@@ -304,11 +288,17 @@ def get_seconds(value: int, unit: str) -> int:
         return value * 86400
     return 0
 
-def check_scheduler(sector_name: str, history_data: dict) -> bool:
+def check_scheduler(sector_name: str, history_data: dict, force: bool = False) -> bool:
     """
     Verifica si se debe ejecutar el sector según configuración.
     Returns: True si se debe ejecutar, False si se debe saltar.
+    Args:
+        force: Si es True, siempre retorna True (salta validación).
     """
+    if force:
+        # Mensaje ya impreso en el orquestador o aquí si se prefiere redundancia
+        return True
+
     scheduler_path = ROOT_DIR / "config" / "scheduler.json"
     if not scheduler_path.exists():
         return True
@@ -343,30 +333,35 @@ def check_scheduler(sector_name: str, history_data: dict) -> bool:
         print(f"⚠️ Error en scheduler: {e}")
         return True
 
-def run_full_mission(target_url: str = "https://www.google.com"):
+def run_full_mission(target_url: str = "https://www.google.com", force: bool = False):
     """
     Función de conveniencia para ejecutar una misión completa.
     
     Args:
         target_url: URL objetivo para scraping
+        force: Forzar ejecución
         
     Returns:
         Resultados de la misión
     """
     orchestrator = AntigravityOrchestrator("FULL_CYCLE")
-    return orchestrator.run_full_mission(target_url)
+    return orchestrator.run_full_mission(target_url, force=force)
 
 
 def main():
     """Punto de entrada principal del sistema Antigravity."""
+    parser = argparse.ArgumentParser(description="Antigravity System Orchestrator")
+    parser.add_argument("--force", action="store_true", help="Forzar ejecución ignorando scheduler (D022)")
+    args = parser.parse_args()
+
     print("\n" + "🌌"*35)
     print("\n        A N T I G R A V I T Y   S Y S T E M")
-    print("              Orquestador Central v1.1")
+    print("              Orquestador Central v1.2")
     print("                    Nivel 7")
     print("\n" + "🌌"*35 + "\n")
     
     # Ejecutar misión completa
-    results = run_full_mission()
+    results = run_full_mission(force=args.force)
     
     # Resumen final
     print("\n" + "="*70)
