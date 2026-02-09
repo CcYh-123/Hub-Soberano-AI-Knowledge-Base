@@ -31,6 +31,7 @@ try:
     from notifier_skill import send_notification as send_external_notification
     from cleaner_skill import run_maintenance, get_maintenance_status
     from web_skill import generate_web
+    from core.storage_engine import process_trends
 except ImportError as e:
     print(f"❌ Error importando módulos: {e}")
     print("   Asegúrate de que todos los scripts existen en /scripts")
@@ -166,6 +167,9 @@ class AntigravityOrchestrator:
             
             # Cargar Datos y Procesar según Sector Activo
             data_files = read_data_files()
+            
+            # PASO 2.5: Análisis de Memoria Histórica (D018)
+            data_files = self.run_step("D018_Storage: Análisis de Tendencias", process_trends, data_files)
             
             # Cargar Skill de Sector dinámicamente (D017)
             import json

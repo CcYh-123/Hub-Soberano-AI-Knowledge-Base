@@ -212,6 +212,9 @@ Este reporte consolida la inteligencia extraída para el sector **{sector_name}*
         # Si no tiene sector, asumimos que es del sector activo (retro-compatibilidad).
         if file_sector and file_sector != active_sector_key:
             continue
+        
+        if not file_sector and active_sector_key != 'real_estate':
+            continue
 
         items = data.get('properties', data.get('products', []))
         for item in items:
@@ -221,7 +224,8 @@ Este reporte consolida la inteligencia extraída para el sector **{sector_name}*
                 val = item.get(key, 'N/A')
                 # Formateo si es precio
                 if 'precio' in key and isinstance(val, (int, float)):
-                    val = f"${val:,}"
+                    indicator = item.get('indicator', '')
+                    val = f"${val:,} {indicator}".strip()
                 
                 # Resaltado de tags
                 if key == 'tag':

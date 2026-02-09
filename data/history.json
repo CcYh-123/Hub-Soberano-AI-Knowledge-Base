@@ -1,0 +1,32 @@
+{
+    "pharmacy:Amoxicilina 500mg": {
+        "price": 1100,
+        "last_updated": "2026-02-09T14:09:06.967190",
+        "sector": "pharmacy"
+    },
+    "pharmacy:Ibuprofeno 600mg": {
+        "price": 850,
+        "last_updated": "2026-02-09T14:09:06.967198",
+        "sector": "pharmacy"
+    },
+    "pharmacy:Vitamina C": {
+        "price": 1800,
+        "last_updated": "2026-02-09T14:09:06.967202",
+        "sector": "pharmacy"
+    },
+    "unknown:Palermo": {
+        "price": 125000,
+        "last_updated": "2026-02-09T14:09:06.967205",
+        "sector": "unknown"
+    },
+    "unknown:Recoleta": {
+        "price": 210000,
+        "last_updated": "2026-02-09T14:09:06.967208",
+        "sector": "unknown"
+    },
+    "unknown:Villa Crespo": {
+        "price": 95000,
+        "last_updated": "2026-02-09T14:09:06.967223",
+        "sector": "unknown"
+    }
+}
