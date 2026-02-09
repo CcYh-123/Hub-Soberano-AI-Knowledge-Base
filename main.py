@@ -28,6 +28,7 @@ try:
     from reporter_skill import generate_executive_report
     from comms_skill import send_notification, send_mission_summary, send_critical_alert
     from heartbeat_skill import check_health
+    from notifier_skill import send_notification as send_external_notification
 except ImportError as e:
     print(f"❌ Error importando módulos: {e}")
     print("   Asegúrate de que todos los scripts existen en /scripts")
@@ -273,7 +274,15 @@ def main():
     health = check_health(hours=1)
     print(f"   Estado de salud: {health['overall_health']}")
     
-    print("\n🔮 Sistema Antigravity - Nivel 7 Operativo\n")
+    # ============================================================
+    # NOTIFIER: Envío a canal externo (D009)
+    # ============================================================
+    print("\n📣 Ejecutando Notifier D009...")
+    notification_result = send_external_notification()
+    print(f"   Modo: {notification_result['mode']}")
+    print(f"   Resultado: {'✅' if notification_result['success'] else '⚠️'} {notification_result['message']}")
+    
+    print("\n🔮 Sistema Antigravity - Nivel 8 Operativo\n")
     
     return 0 if results['success'] else 1
 

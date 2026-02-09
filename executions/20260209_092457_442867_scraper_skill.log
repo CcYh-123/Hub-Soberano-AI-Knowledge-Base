@@ -1,0 +1,13 @@
+# LOG: scraper_skill
+# Archivo: 20260209_092457_442867_scraper_skill.log
+# ROOT_DIR: C:\Users\Lenovo\Antigravity_Home\Proyecto_Antigravity
+============================================================
+
+[2026-02-09 09:24:57.442] [INFO] Logger inicializado para: scraper_skill
+[2026-02-09 09:24:57.443] [INFO] Ruta de persistencia: C:\Users\Lenovo\Antigravity_Home\Proyecto_Antigravity\executions\20260209_092457_442867_scraper_skill.log
+[2026-02-09 09:24:57.849] [INFO] Iniciando extracción desde: https://www.google.com
+[2026-02-09 09:24:57.850] [INFO] Datos guardados exitosamente en raw_data.json
+[2026-02-09 09:24:57.850] [SUCCESS] Scraping completado exitosamente para https://www.google.com
+
+============================================================
+# Total de entradas: 5
