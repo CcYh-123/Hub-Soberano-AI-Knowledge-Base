@@ -1,0 +1,13 @@
+# LOG: test_context_manager
+# Archivo: 20260209_091441_140630_test_context_manager.log
+# ROOT_DIR: C:\Users\Lenovo\Antigravity_Home\Proyecto_Antigravity
+============================================================
+
+[2026-02-09 09:14:41.140] [INFO] Logger inicializado para: test_context_manager
+[2026-02-09 09:14:41.140] [INFO] Ruta de persistencia: C:\Users\Lenovo\Antigravity_Home\Proyecto_Antigravity\executions\20260209_091441_140630_test_context_manager.log
+[2026-02-09 09:14:41.140] [INFO] Usando logger con context manager
+[2026-02-09 09:14:41.140] [INFO] El log se guardará automáticamente al salir del bloque
+[2026-02-09 09:14:41.141] [SUCCESS] Context manager funcionando correctamente
+
+============================================================
+# Total de entradas: 5

@@ -1,11 +1,21 @@
 """
 Logger Skill - Sistema de Registro y Trazabilidad
 D002: Módulo reutilizable para logging de actividades
+
+REFACTORIZACIÓN A01 (2026-02-09):
+- Ruta ROOT_DIR absoluta para garantizar persistencia
+- Timestamp con milisegundos para evitar colisiones
+- Modo 'a' (append) para inmutabilidad
 """
 
 import os
 from datetime import datetime
 from pathlib import Path
+
+
+# 🔧 FIX A01: Ruta absoluta usando __file__ para independencia de CWD
+ROOT_DIR = Path(__file__).parent.parent
+EXECUTIONS_DIR = ROOT_DIR / "executions"
 
 
 class AntigravityLogger:
@@ -16,30 +26,56 @@ class AntigravityLogger:
     - Inmutabilidad: Los logs nunca se sobrescriben
     - Estructura: [TIMESTAMP] [NIVEL] [MENSAJE]
     - Persistencia: El log se escribe antes de cerrar el proceso
+    
+    Refactorización A01:
+    - Ruta absoluta garantizada vía ROOT_DIR
+    - Timestamp con milisegundos para unicidad
+    - Auto-creación de /executions
     """
     
-    def __init__(self, script_name: str, executions_dir: str = "../executions"):
+    def __init__(self, script_name: str, executions_dir: Path = None):
         """
         Inicializa el logger para un script específico.
         
         Args:
             script_name: Nombre del script que usa el logger
-            executions_dir: Ruta relativa o absoluta a la carpeta /executions
+            executions_dir: Ruta a /executions (default: usa ROOT_DIR/executions)
         """
         self.script_name = script_name
-        self.executions_dir = Path(executions_dir)
+        
+        # 🔧 FIX A01: Usar ruta absoluta por defecto
+        self.executions_dir = executions_dir if executions_dir else EXECUTIONS_DIR
+        
+        # Asegurar que sea Path
+        if isinstance(self.executions_dir, str):
+            self.executions_dir = Path(self.executions_dir)
+        
         self.log_entries = []
         
-        # Crear carpeta /executions si no existe
-        self.executions_dir.mkdir(parents=True, exist_ok=True)
+        # Verificar y crear carpeta /executions si no existe
+        self._ensure_executions_dir()
         
-        # Generar nombre de archivo con timestamp
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M")
+        # 🔧 FIX A01: Timestamp con milisegundos para evitar colisiones
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
         self.log_filename = f"{timestamp}_{script_name}.log"
         self.log_path = self.executions_dir / self.log_filename
         
         # Registrar inicio
         self.info(f"Logger inicializado para: {script_name}")
+        self.info(f"Ruta de persistencia: {self.log_path}")
+    
+    def _ensure_executions_dir(self):
+        """
+        🔧 FIX A01: Verifica y crea /executions si no existe.
+        Logging de la acción para trazabilidad.
+        """
+        if not self.executions_dir.exists():
+            self.executions_dir.mkdir(parents=True, exist_ok=True)
+            print(f"[SYSTEM] Carpeta creada: {self.executions_dir}")
+        else:
+            # Verificar que sea un directorio, no un archivo
+            if not self.executions_dir.is_dir():
+                raise ValueError(f"Ruta existe pero no es directorio: {self.executions_dir}")
     
     def _format_entry(self, level: str, message: str) -> str:
         """
@@ -52,7 +88,7 @@ class AntigravityLogger:
         Returns:
             Entrada formateada: [TIMESTAMP] [NIVEL] [MENSAJE]
         """
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]  # Milisegundos
         return f"[{timestamp}] [{level}] {message}"
     
     def info(self, message: str):
@@ -82,12 +118,17 @@ class AntigravityLogger:
     def save(self):
         """
         Persiste el log en disco.
-        Debe llamarse al finalizar el script para garantizar inmutabilidad.
+        
+        🔧 FIX A01: Usa modo 'a' (append) para inmutabilidad.
+        Cada archivo es único por milisegundo, pero si hay colisión,
+        el append garantiza que no se pierdan datos.
         """
         try:
-            with open(self.log_path, 'w', encoding='utf-8') as f:
+            # 🔧 FIX A01: Modo 'a' para append en caso de colisión
+            with open(self.log_path, 'a', encoding='utf-8') as f:
                 f.write(f"# LOG: {self.script_name}\n")
                 f.write(f"# Archivo: {self.log_filename}\n")
+                f.write(f"# ROOT_DIR: {ROOT_DIR}\n")
                 f.write("=" * 60 + "\n\n")
                 f.write("\n".join(self.log_entries))
                 f.write("\n\n" + "=" * 60 + "\n")
@@ -117,6 +158,7 @@ class AntigravityLogger:
 def create_logger(script_name: str) -> AntigravityLogger:
     """
     Factory function para crear un logger rápidamente.
+    Usa la ruta absoluta ROOT_DIR/executions por defecto.
     
     Args:
         script_name: Nombre del script
@@ -125,3 +167,13 @@ def create_logger(script_name: str) -> AntigravityLogger:
         Instancia de AntigravityLogger
     """
     return AntigravityLogger(script_name)
+
+
+def get_root_dir() -> Path:
+    """Devuelve la ruta raíz del proyecto (para uso externo)."""
+    return ROOT_DIR
+
+
+def get_executions_dir() -> Path:
+    """Devuelve la ruta de /executions (para uso externo)."""
+    return EXECUTIONS_DIR

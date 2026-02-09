@@ -1,0 +1,13 @@
+# LOG: test_errores
+# Archivo: 20260209_091459_821833_test_errores.log
+# ROOT_DIR: C:\Users\Lenovo\Antigravity_Home\Proyecto_Antigravity
+============================================================
+
+[2026-02-09 09:14:59.821] [INFO] Logger inicializado para: test_errores
+[2026-02-09 09:14:59.822] [INFO] Ruta de persistencia: C:\Users\Lenovo\Antigravity_Home\Proyecto_Antigravity\executions\20260209_091459_821833_test_errores.log
+[2026-02-09 09:14:59.822] [INFO] Simulando escenario con errores
+[2026-02-09 09:14:59.822] [ERROR] Error capturado: division by zero
+[2026-02-09 09:14:59.822] [SUCCESS] El sistema manejó el error correctamente
+
+============================================================
+# Total de entradas: 5

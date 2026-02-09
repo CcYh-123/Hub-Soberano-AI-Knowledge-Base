@@ -1,0 +1,14 @@
+# LOG: test_basico
+# Archivo: 20260209_091441_137315_test_basico.log
+# ROOT_DIR: C:\Users\Lenovo\Antigravity_Home\Proyecto_Antigravity
+============================================================
+
+[2026-02-09 09:14:41.137] [INFO] Logger inicializado para: test_basico
+[2026-02-09 09:14:41.137] [INFO] Ruta de persistencia: C:\Users\Lenovo\Antigravity_Home\Proyecto_Antigravity\executions\20260209_091441_137315_test_basico.log
+[2026-02-09 09:14:41.137] [INFO] Iniciando prueba de funcionalidad básica
+[2026-02-09 09:14:41.137] [INFO] Registrando mensaje informativo
+[2026-02-09 09:14:41.137] [WARNING] Esto es una advertencia de prueba
+[2026-02-09 09:14:41.137] [SUCCESS] Operación de prueba completada
+
+============================================================
+# Total de entradas: 6

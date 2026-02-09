@@ -1,0 +1,13 @@
+# LOG: test_excepcion
+# Archivo: 20260209_091459_826553_test_excepcion.log
+# ROOT_DIR: C:\Users\Lenovo\Antigravity_Home\Proyecto_Antigravity
+============================================================
+
+[2026-02-09 09:14:59.826] [INFO] Logger inicializado para: test_excepcion
+[2026-02-09 09:14:59.826] [INFO] Ruta de persistencia: C:\Users\Lenovo\Antigravity_Home\Proyecto_Antigravity\executions\20260209_091459_826553_test_excepcion.log
+[2026-02-09 09:14:59.827] [INFO] Iniciando test con excepción
+[2026-02-09 09:14:59.827] [WARNING] A continuación se generará un error intencional
+[2026-02-09 09:14:59.827] [ERROR] Excepción capturada: ValueError: Error de prueba intencional
+
+============================================================
+# Total de entradas: 5
