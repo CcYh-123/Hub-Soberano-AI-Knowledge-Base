@@ -136,7 +136,7 @@ def generate_insights(data_files, knowledge_content):
     return insights
 
 
-def generate_report(data_files, knowledge_content, insights):
+def generate_report(data_files, knowledge_content, insights, maintenance_report=None):
     """Genera el reporte ejecutivo en formato Markdown."""
     execution_id = str(uuid.uuid4())[:8].upper()
     timestamp = datetime.now()
@@ -183,6 +183,12 @@ Este reporte consolida los datos extraídos por el sistema Antigravity y las lec
     for insight in insights:
         content += f"### {insight['tipo']}\n"
         content += f"{insight['contenido']}\n\n"
+    
+    # Añadir reporte de mantenimiento (D010)
+    if maintenance_report:
+        content += "---\n\n"
+        content += maintenance_report
+        content += "\n\n"
     
     # Añadir extracto de la base de conocimiento
     content += "---\n\n## 🧠 Extracto de Base de Conocimiento\n\n"
@@ -239,7 +245,7 @@ Este reporte consolida los datos extraídos por el sistema Antigravity y las lec
         return None
 
 
-def generate_executive_report():
+def generate_executive_report(maintenance_report=None):
     """Función principal que ejecuta el flujo completo de generación."""
     print("\n" + "="*60)
     print("📊 REPORTER SKILL - Generación de Reporte Ejecutivo")
@@ -266,7 +272,7 @@ def generate_executive_report():
     
     # Paso 4: Generar reporte
     print("📝 Paso 4: Generando reporte ejecutivo...")
-    report_path = generate_report(data_files, knowledge_content, insights)
+    report_path = generate_report(data_files, knowledge_content, insights, maintenance_report)
     
     # Guardar log
     if logger:

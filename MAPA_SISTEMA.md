@@ -1,7 +1,6 @@
 # 🗺️ MAPA DEL SISTEMA ANTIGRAVITY
-**Última Actualización:** 2026-02-09 09:23:05
+**Última Actualización:** 2026-02-09 09:31:14
 **Directiva Base:** D001_Indexador
-**Versión:** Nivel 9 (Sistema con Notificaciones Externas)
 
 ---
 
@@ -14,15 +13,18 @@
 - 📄 D006_Orquestador.md
 - 📄 D007_Comunicador.md
 - 📄 D008_Automatizacion.md
-- 📄 D009_Notificaciones.md ✨ **NUEVO**
+- 📄 D009_Notificaciones.md
+- 📄 D010_Mantenimiento.md
+    - 📁 **directivas/**
 
 
 ### 📂 /scripts
 - 📄 brain_skill.py
+- 📄 cleaner_skill.py
 - 📄 comms_skill.py
 - 📄 heartbeat_skill.py
-- 📄 logger_skill.py (FIX A01)
-- 📄 notifier_skill.py ✨ **NUEVO**
+- 📄 logger_skill.py
+- 📄 notifier_skill.py
 - 📄 reporter_skill.py
 - 📄 scraper_skill.py
 - 📄 script_001_indexador.py
@@ -31,58 +33,22 @@
 
 
 ### 📂 /executions
-*Logs de ejecución con timestamps únicos*
-
-
-### 📂 /reports
-*Reportes ejecutivos y de salud*
-
-
-### 📂 / (Raíz)
-- 📄 main.py (Orquestador D006 + Heartbeat D008 + Notifier D009)
-- 📄 antigravity_run.bat - Lanzador para Task Scheduler
-- 📄 .env - Configuración de webhooks (opcional)
-
-
----
-
-## 🔗 Flujo de Automatización D008 + D009
-
-```
-[Windows Task Scheduler]
-        │
-        ▼
-[antigravity_run.bat]
-        │
-        ├─▶ [D001] Indexador (Auto-Diagnóstico)
-        │
-        ├─▶ [D006] main.py (Orquestador)
-        │       │
-        │       ├─▶ D004 Scraper
-        │       ├─▶ D003 Brain
-        │       ├─▶ D005 Reporter
-        │       ├─▶ D007 Comms (interno)
-        │       ├─▶ D008 Heartbeat
-        │       └─▶ D009 Notifier → [Discord/Slack/Webhook]
-        │
-        └─▶ [D008] Heartbeat (Validación Final)
-```
-
----
-
-## 🔧 Configuración de Webhooks (.env)
-
-```env
-# Discord Webhook
-WEBHOOK_URL=https://discord.com/api/webhooks/...
-
-# Slack Webhook  
-# WEBHOOK_URL=https://hooks.slack.com/services/...
-
-# Webhook genérico
-# WEBHOOK_URL=https://api.example.com/webhook
-```
-
----
-
-*Sistema Antigravity - Nivel 9 con Notificaciones Externas*
+- 📄 20260209_091441_137315_test_basico.log
+- 📄 20260209_091441_138972_test_errores.log
+- 📄 20260209_091441_140630_test_context_manager.log
+- 📄 20260209_091441_142651_test_excepcion.log
+- 📄 20260209_091453_408214_test_basico.log
+- 📄 20260209_091453_410070_test_errores.log
+- 📄 20260209_091453_413150_test_context_manager.log
+- 📄 20260209_091453_415311_test_excepcion.log
+- 📄 20260209_091459_819660_test_basico.log
+- 📄 20260209_091459_821833_test_errores.log
+- 📄 20260209_091459_823975_test_context_manager.log
+- 📄 20260209_091459_826553_test_excepcion.log
+- 📄 20260209_092012_557333_scraper_skill.log
+- 📄 20260209_092012_568000_reporter_skill.log
+- 📄 20260209_092012_640279_orchestrator_FULL_CYCLE.log
+- 📄 20260209_092457_442867_scraper_skill.log
+- 📄 20260209_092457_450067_reporter_skill.log
+- 📄 20260209_092457_849127_orchestrator_FULL_CYCLE.log
+- 📄 20260209_092457_931408_notifier_d009.log

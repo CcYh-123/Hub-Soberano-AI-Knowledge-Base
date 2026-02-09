@@ -29,6 +29,7 @@ try:
     from comms_skill import send_notification, send_mission_summary, send_critical_alert
     from heartbeat_skill import check_health
     from notifier_skill import send_notification as send_external_notification
+    from cleaner_skill import run_maintenance, get_maintenance_status
 except ImportError as e:
     print(f"❌ Error importando módulos: {e}")
     print("   Asegúrate de que todos los scripts existen en /scripts")
@@ -128,7 +129,19 @@ class AntigravityOrchestrator:
         self.log("INFO", f"=== INICIO DE MISIÓN: {self.mission_name} ===")
         self.log("INFO", f"URL objetivo: {target_url}")
         
+        maintenance_data = ""
+        
         try:
+            # ============================================================
+            # PASO 0: MANTENIMIENTO (D010 - Cleaner)
+            # ============================================================
+            self.run_step(
+                "D010_Cleaner: Mantenimiento del Sistema",
+                run_maintenance,
+                retention_days=7
+            )
+            maintenance_data = get_maintenance_status(retention_days=7)
+            
             # ============================================================
             # PASO 1: EXTRACCIÓN (D004 - Scraper)
             # ============================================================
@@ -155,7 +168,8 @@ class AntigravityOrchestrator:
             # ============================================================
             report_path = self.run_step(
                 "D005_Reporter: Generación de Reporte",
-                generate_executive_report
+                generate_executive_report,
+                maintenance_report=maintenance_data
             )
             
             # ============================================================
