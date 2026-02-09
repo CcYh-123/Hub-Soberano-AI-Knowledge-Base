@@ -119,8 +119,20 @@ def generate_web():
     nav_links = ""
     for skey, sdata in sectors.items():
         is_active = skey == active_sector_key
-        bg_class = "bg-indigo-600 text-white" if is_active else "text-gray-500 hover:text-indigo-600"
-        nav_links += f"""<a href="#" class="px-4 py-2 rounded-full text-sm font-bold transition {bg_class}">{sdata['icon']} {sdata['name'].upper()}</a>"""
+        bg_class = "bg-indigo-600 text-white shadow-lg scale-105" if is_active else "text-slate-500 hover:text-indigo-600 hover:bg-white/50"
+        nav_links += f"""<a href="#" onclick="switchSector('{skey}')" class="px-4 py-2 rounded-full text-sm font-bold transition-all duration-300 {bg_class}">{sdata['icon']} {sdata['name'].upper()}</a>"""
+
+    # Script para interactividad (D017)
+    script_js = f"""
+    <script>
+    function switchSector(key) {{
+        const activeSector = "{active_sector_key}";
+        if (key !== activeSector) {{
+            alert("⚠️ El sector " + key.toUpperCase() + " no es el foco actual.\\n\\nSolicita a Antigravity: 'Cambia el sector activo a " + key + "' para visualizar su inteligencia comercial.");
+        }}
+    }}
+    </script>
+    """
 
     # Template Maestro con Tailwind CSS
     template = f"""<!DOCTYPE html>
@@ -166,6 +178,7 @@ def generate_web():
         <div class="prose prose-slate max-w-none">
             {content_html}
         </div>
+        {script_js}
         
         <footer class="mt-20 pt-8 border-t border-slate-200 text-center text-slate-400 text-sm">
             <p>Antigravity System &copy; 2026 | Arquitectura Multi-Sector D014</p>

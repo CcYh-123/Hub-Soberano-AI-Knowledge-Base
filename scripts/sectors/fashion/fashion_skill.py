@@ -31,11 +31,11 @@ class FashionSkill:
                 discount_pct = round(((original - oferta) / original) * 100)
             
             # Lógica de Oportunidad (D017)
-            tag = "TEMPORADA"
+            tag = "MERCADO"
             if discount_pct > 50:
                 tag = "OPORTUNIDAD DE ORO"
-            elif discount_pct > 30:
-                tag = "OFERTA DESTACADA"
+            elif discount_pct > 20:
+                tag = "OFERTA"
                 
             processed.append({
                 "prenda": item.get('prenda', 'N/A'),

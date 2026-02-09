@@ -197,6 +197,13 @@ Este reporte consolida la inteligencia extraída para el sector **{sector_name}*
     separator_row = "| " + " | ".join(["---"] * len(headers)) + " |\n"
     content += header_row + separator_row
     
+    active_sector_key = "real_estate" # Fallback
+    config_path = ROOT_DIR / "config_sector.json"
+    if config_path.exists():
+        with open(config_path, 'r', encoding='utf-8') as f:
+            full_config = json.load(f)
+            active_sector_key = full_config.get('active_sector', 'real_estate')
+
     for entry in data_files:
         data = entry.get('data', {})
         file_sector = data.get('sector')

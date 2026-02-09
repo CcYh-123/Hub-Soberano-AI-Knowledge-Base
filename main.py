@@ -157,15 +157,37 @@ class AntigravityOrchestrator:
             
 
             # ============================================================
-            # PASO 2: ANÁLISIS (D003 - Brain)
+            # PASO 2: ANÁLISIS (D003 - Brain) + SECTORES (D014)
             # ============================================================
-            brain = create_brain() # Ensure brain is created before its methods are called
+            brain = create_brain() 
             logs_data = self.run_step("D003_Brain: Lectura de Logs", brain.read_logs)
             error_analysis = self.run_step("D003_Brain: Análisis de Errores", brain.analyze_errors, logs_data)
             success_patterns = self.run_step("D003_Brain: Patrones de Éxito", brain.extract_success_patterns, logs_data)
             
-            # Especialización Inmobiliaria v1.1
+            # Cargar Datos y Procesar según Sector Activo
             data_files = read_data_files()
+            
+            # Cargar Skill de Sector dinámicamente (D017)
+            import json
+            config_path = ROOT_DIR / "config_sector.json"
+            active_sector = "real_estate"
+            if config_path.exists():
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+                    active_sector = config.get('active_sector', 'real_estate')
+            
+            if active_sector == "fashion":
+                try:
+                    from sectors.fashion.fashion_skill import FashionSkill
+                    f_skill = FashionSkill()
+                    for entry in data_files:
+                        if entry['data'].get('sector') == 'fashion':
+                            products = entry['data'].get('products', [])
+                            entry['data']['products'] = f_skill.process_products(products)
+                            self.log("INFO", f"Procesados {len(products)} productos de Moda")
+                except Exception as e:
+                    self.log("WARNING", f"Skill de Moda no procesado: {e}")
+
             opportunities = self.run_step("D003_Brain: Detección de Oportunidades", brain.analyze_properties, data_files)
             
             knowledge = self.run_step(
