@@ -31,12 +31,16 @@ def parse_md_to_html(md_content):
         new_lines = []
         in_table = False
         for line in lines:
-            if "|" in line:
-                cells = [c.strip() for c in line.split("|") if c.strip() or line.count("|") > 1]
+            if "|" in line.strip():
+                # Limpiar celdas ignorando los pipes de los extremos si existen
+                cells = [c.strip() for c in line.split("|")]
+                if not cells[0]: cells = cells[1:]
+                if cells and not cells[-1]: cells = cells[:-1]
+                
                 if not cells: continue
                 
-                # Ignorar separadores de tabla
-                if all(re.match(r'^[-:]+$', c) for c in cells):
+                # Ignorar separadores de tabla (---)
+                if all(re.match(r'^[-: ]+$', c) for c in cells):
                     continue
                 
                 if not in_table:
@@ -49,9 +53,9 @@ def parse_md_to_html(md_content):
                 else:
                     new_lines.append('<tr>')
                     for c in cells:
-                        # Resaltado de Oportunidades
+                        # Resaltado de Oportunidades y Alertas
                         cell_style = "px-6 py-4 whitespace-nowrap text-sm text-gray-700"
-                        if "OPORTUNIDAD" in c:
+                        if "OPORTUNIDAD" in c or "ALERTA" in c:
                             cell_style += " font-bold text-red-600 bg-red-50"
                         new_lines.append(f'<td class="{cell_style}">{c}</td>')
                     new_lines.append('</tr>')
@@ -68,11 +72,12 @@ def parse_md_to_html(md_content):
     # Listas
     html = re.sub(r'^- (.*)$', r'<li class="ml-4 mb-2 list-disc text-gray-700">\1</li>', html, flags=re.M)
     
-    # Separadores
-    html = html.replace('---', '<hr class="my-10 border-t border-gray-200">')
+    # Separadores (Evitar romper tablas si ya se procesaron)
+    if not in_table:
+        html = re.sub(r'^---$', r'<hr class="my-10 border-t border-gray-200">', html, flags=re.M)
     
-    # Párrafos
-    html = html.replace('\n\n', '</p><p class="mb-4 text-gray-600">')
+    # Párrafos (Solo si no es parte de una tabla)
+    # html = html.replace('\n\n', '</p><p class="mb-4 text-gray-600">')
     
     return html
 

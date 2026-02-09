@@ -198,11 +198,17 @@ Este reporte consolida la inteligencia extraída para el sector **{sector_name}*
     content += header_row + separator_row
     
     for entry in data_files:
-        # Intentar obtener propiedades o lista general
-        items = entry.get('data', {}).get('properties', entry.get('data', {}).get('products', []))
+        data = entry.get('data', {})
+        file_sector = data.get('sector')
+        
+        # Lógica de Filtrado: Si el archivo tiene sector, debe coincidir.
+        # Si no tiene sector, asumimos que es del sector activo (retro-compatibilidad).
+        if file_sector and file_sector != active_sector_key:
+            continue
+
+        items = data.get('properties', data.get('products', []))
         for item in items:
             row_cells = []
-            tag_value = item.get('tag', 'MERCADO')
             
             for key in keys:
                 val = item.get(key, 'N/A')

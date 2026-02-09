@@ -3,7 +3,11 @@ from pathlib import Path
 from datetime import datetime
 
 # Configuración de Rutas
-ROOT_DIR = Path(__file__).parent.parent.parent.absolute()
+# fashion_skill.py está en /scripts/sectors/fashion/
+# 1 parent -> /scripts/sectors/
+# 2 parent -> /scripts/
+# 3 parent -> /Proyecto_Antigravity/
+ROOT_DIR = Path(__file__).parent.parent.parent.parent.absolute()
 DATA_DIR = ROOT_DIR / "data"
 
 class FashionSkill:

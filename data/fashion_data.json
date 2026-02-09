@@ -1,0 +1,35 @@
+{
+  "status": "success",
+  "sector": "fashion",
+  "timestamp": "2026-02-09T12:11:34.437062",
+  "products": [
+    {
+      "prenda": "Chaqueta de Cuero",
+      "marca": "Zara",
+      "precio_original": 120,
+      "precio_oferta": 45,
+      "tag": "OPORTUNIDAD DE ORO"
+    },
+    {
+      "prenda": "Zapatillas Urbanas",
+      "marca": "Nike",
+      "precio_original": 150,
+      "precio_oferta": 90,
+      "tag": "OFERTA"
+    },
+    {
+      "prenda": "Vestido de Seda",
+      "marca": "Gucci",
+      "precio_original": 850,
+      "precio_oferta": 350,
+      "tag": "OPORTUNIDAD DE ORO"
+    },
+    {
+      "prenda": "Pantalón Denim",
+      "marca": "Levi's",
+      "precio_original": 90,
+      "precio_oferta": 65,
+      "tag": "TEMPORADA"
+    }
+  ]
+}
