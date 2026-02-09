@@ -44,12 +44,22 @@ IF %MAIN_EXIT_CODE% NEQ 0 (
 ECHO.
 
 REM Paso 3: Ejecutar heartbeat para validar ejecución
-ECHO [PASO 3/3] Ejecutando Heartbeat (D008)...
+ECHO [PASO 3/4] Ejecutando Heartbeat (D008)...
 py scripts/heartbeat_skill.py
 IF %ERRORLEVEL% NEQ 0 (
     ECHO [WARNING] Heartbeat detecto problemas.
 ) ELSE (
     ECHO [OK] Heartbeat confirma sistema saludable.
+)
+ECHO.
+
+REM Paso 4: Desplegar Frontend a Vitrina Pública (D015)
+ECHO [PASO 4/4] Sincronizando Vitrina Publica (D015)...
+py scripts/deploy_frontend.py
+IF %ERRORLEVEL% NEQ 0 (
+    ECHO [WARNING] Fallo el despliegue del frontend.
+) ELSE (
+    ECHO [OK] Vitrina actualizada correctamente.
 )
 
 ECHO.

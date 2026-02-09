@@ -1,5 +1,5 @@
 # 🗺️ MAPA DEL SISTEMA ANTIGRAVITY
-**Última Actualización:** 2026-02-09 10:42:55
+**Última Actualización:** 2026-02-09 11:45:00
 **Directiva Base:** D001_Indexador
 
 ---
@@ -22,6 +22,7 @@
 - 📄 brain_skill.py
 - 📄 cleaner_skill.py
 - 📄 comms_skill.py
+- 📄 deploy_frontend.py
 - 📄 heartbeat_skill.py
 - 📄 logger_skill.py
 - 📄 notifier_skill.py
@@ -71,3 +72,7 @@
 - 📄 20260209_104225_870796_reporter_skill.log
 - 📄 20260209_104226_069097_orchestrator_FULL_CYCLE.log
 - 📄 20260209_104226_070438_cleaner_d010.log
+- 📄 20260209_104255_131872_scraper_skill.log
+- 📄 20260209_104255_139384_reporter_skill.log
+- 📄 20260209_104255_301426_orchestrator_FULL_CYCLE.log
+- 📄 20260209_104255_302237_cleaner_d010.log
