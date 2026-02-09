@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+
+# Antigravity Secrets
+.env
+
+# Antigravity Logs and Temp
+executions/*.log
+!executions/.gitkeep
+archive/
+
+# OS
+.DS_Store
+Thumbs.db

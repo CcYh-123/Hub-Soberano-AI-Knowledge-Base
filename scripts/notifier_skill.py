@@ -256,9 +256,9 @@ def send_notification(logger=None) -> dict:
         result['mode'] = 'fallback'
         result['message'] = 'requests no instalado'
     
-    # 2. Cargar configuración desde .env
+    # 2. Cargar configuración (Prioridad: os.environ > .env)
     env_vars = load_env()
-    webhook_url = env_vars.get('WEBHOOK_URL', os.environ.get('WEBHOOK_URL', ''))
+    webhook_url = os.getenv('WEBHOOK_URL') or env_vars.get('WEBHOOK_URL', '')
     
     # 3. Modo fallback si no hay URL
     if not webhook_url:
