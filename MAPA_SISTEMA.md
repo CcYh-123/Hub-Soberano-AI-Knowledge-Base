@@ -1,7 +1,6 @@
 # 🗺️ MAPA DEL SISTEMA ANTIGRAVITY
-**Última Actualización:** 2026-02-09 10:00:00
+**Última Actualización:** 2026-02-09 10:42:55
 **Directiva Base:** D001_Indexador
-**Versión:** **Antigravity v1.1 - Real Estate Investment Proof**
 
 ---
 
@@ -31,6 +30,7 @@
 - 📄 script_001_indexador.py
 - 📄 test_brain.py
 - 📄 test_logger.py
+- 📄 web_skill.py
 
 
 ### 📂 /executions
@@ -62,3 +62,12 @@
 - 📄 20260209_095808_133284_orchestrator_FULL_CYCLE.log
 - 📄 20260209_095808_134408_cleaner_d010.log
 - 📄 20260209_095808_200001_notifier_d009.log
+- 📄 20260209_095845_744740_scraper_skill.log
+- 📄 20260209_095845_752327_reporter_skill.log
+- 📄 20260209_095845_929157_orchestrator_FULL_CYCLE.log
+- 📄 20260209_095845_930051_cleaner_d010.log
+- 📄 20260209_095846_052671_notifier_d009.log
+- 📄 20260209_104225_863013_scraper_skill.log
+- 📄 20260209_104225_870796_reporter_skill.log
+- 📄 20260209_104226_069097_orchestrator_FULL_CYCLE.log
+- 📄 20260209_104226_070438_cleaner_d010.log

@@ -30,6 +30,7 @@ try:
     from heartbeat_skill import check_health
     from notifier_skill import send_notification as send_external_notification
     from cleaner_skill import run_maintenance, get_maintenance_status
+    from web_skill import generate_web
 except ImportError as e:
     print(f"❌ Error importando módulos: {e}")
     print("   Asegúrate de que todos los scripts existen en /scripts")
@@ -154,6 +155,7 @@ class AntigravityOrchestrator:
             if not scrape_result:
                 self.log("WARNING", "Scraping no retornó datos, continuando con análisis")
             
+
             # ============================================================
             # PASO 2: ANÁLISIS (D003 - Brain)
             # ============================================================
@@ -180,6 +182,14 @@ class AntigravityOrchestrator:
                 "D005_Reporter: Generación de Reporte",
                 generate_executive_report,
                 maintenance_report=maintenance_data
+            )
+            
+            # ============================================================
+            # WEB INTERFACE: Generación de Interfaz Pública (D013)
+            # ============================================================
+            self.run_step(
+                "D013_Web: Generación de Interfaz",
+                generate_web
             )
             
             # ============================================================
