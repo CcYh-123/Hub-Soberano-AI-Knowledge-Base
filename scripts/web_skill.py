@@ -57,6 +57,8 @@ def parse_md_to_html(md_content):
                         cell_style = "px-6 py-4 whitespace-nowrap text-sm text-gray-700"
                         if "OPORTUNIDAD" in c or "ALERTA" in c:
                             cell_style += " font-bold text-red-600 bg-red-50"
+                        if "🚨" in c: # Critical Item
+                             cell_style += " pulse-gold rounded-lg"
                         new_lines.append(f'<td class="{cell_style}">{c}</td>')
                     new_lines.append('</tr>')
             else:
@@ -134,6 +136,42 @@ def generate_web():
     </script>
     """
 
+    
+    # Detección de Sobrecarga (D019)
+    overload_banner = ""
+    if "⚠️ ALERTA: Historial saturado" in md_content or (active_sector and active_sector.get('system_overload')):
+         overload_banner = """
+         <div class="bg-red-600 text-white text-center py-2 font-bold animate-pulse">
+            ⚠️ ALERTA: Historial saturado. Se recomienda limpieza manual (D019)
+         </div>
+         """
+         
+    # Validación extra por si viene del reporte MD
+    if "Estado del Sistema" in md_content and "Historial saturado" in md_content:
+        overload_banner = """
+         <div class="bg-red-600 text-white text-center py-2 font-bold animate-pulse">
+            ⚠️ ALERTA: Historial saturado. Se recomienda limpieza manual (D019)
+         </div>
+         """
+
+    
+    # Detección de Sobrecarga (D019)
+    overload_banner = ""
+    if "⚠️ ALERTA: Historial saturado" in md_content or (active_sector and active_sector.get('system_overload')):
+         overload_banner = """
+         <div class="bg-red-600 text-white text-center py-2 font-bold animate-pulse">
+            ⚠️ ALERTA: Historial saturado. Se recomienda limpieza manual (D019)
+         </div>
+         """
+         
+    # Validación extra por si viene del reporte MD
+    if "Estado del Sistema" in md_content and "Historial saturado" in md_content:
+        overload_banner = """
+         <div class="bg-red-600 text-white text-center py-2 font-bold animate-pulse">
+            ⚠️ ALERTA: Historial saturado. Se recomienda limpieza manual (D019)
+         </div>
+         """
+
     # Template Maestro con Tailwind CSS
     template = f"""<!DOCTYPE html>
 <html lang="es">
@@ -147,9 +185,20 @@ def generate_web():
         body {{ font-family: 'Inter', sans-serif; background-color: #f1f5f9; }}
         .glass {{ background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }}
         .nav-glass {{ background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(5px); }}
+        @keyframes pulse-gold {{
+            0% {{ box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.7); }}
+            70% {{ box-shadow: 0 0 0 10px rgba(234, 179, 8, 0); }}
+            100% {{ box-shadow: 0 0 0 0 rgba(234, 179, 8, 0); }}
+        }}
+        .pulse-gold {{
+            animation: pulse-gold 2s infinite;
+            border: 2px solid #EAB308 !important;
+        }}
     </style>
 </head>
 <body class="p-0">
+    <!-- Banner de Sobrecarga -->
+    {overload_banner}
     <!-- Navegación Superior -->
     <nav class="sticky top-0 z-50 nav-glass border-b border-gray-200 py-4 px-8 mb-8">
         <div class="max-w-6xl mx-auto flex justify-between items-center">

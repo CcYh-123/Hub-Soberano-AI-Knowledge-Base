@@ -294,7 +294,7 @@ Este reporte consolida la inteligencia extraída para el sector **{sector_name}*
         return None
 
 
-def generate_executive_report(maintenance_report=None):
+def generate_executive_report(data_files=None, maintenance_report=None):
     """Función principal que ejecuta el flujo completo de generación."""
     print("\n" + "="*60)
     print("📊 REPORTER SKILL - Generación de Reporte Ejecutivo")
@@ -303,8 +303,11 @@ def generate_executive_report(maintenance_report=None):
     log_event("INFO", "Iniciando generación de reporte ejecutivo")
     
     # Paso 1: Leer datos
-    print("📁 Paso 1: Leyendo datos de /data...")
-    data_files = read_data_files()
+    if not data_files:
+        print("📁 Paso 1: Leyendo datos de /data...")
+        data_files = read_data_files()
+    else:
+        print("📁 Paso 1: Usando datos provistos en memoria...")
     
     if not data_files:
         log_event("WARNING", "No hay datos para procesar")

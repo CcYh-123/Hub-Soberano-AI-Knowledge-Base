@@ -66,18 +66,30 @@ def process_trends(current_data_files):
             current_price = item.get('precio')
             previous_entry = history.get(key)
             
-            if previous_entry and isinstance(current_price, (int, float)):
+            if previous_entry and isinstance(current_price, (int, float)) and isinstance(previous_entry.get('price'), (int, float)):
                 previous_price = previous_entry.get('price')
                 
-                if current_price < previous_price:
-                    item['trend'] = 'down'
-                    item['indicator'] = '🟢'
-                elif current_price > previous_price:
-                    item['trend'] = 'up'
-                    item['indicator'] = '🔴'
+                if previous_price > 0:
+                    delta_percent = ((previous_price - current_price) / previous_price) * 100
+                    
+                    if delta_percent >= 20:
+                        item['trend'] = 'critical'
+                        item['indicator'] = '🚨'
+                    elif delta_percent >= 5:
+                        item['trend'] = 'opportunity'
+                        item['indicator'] = '🟢'
+                    elif current_price < previous_price:
+                        item['trend'] = 'down'
+                        item['indicator'] = '📉'
+                    elif current_price > previous_price:
+                        item['trend'] = 'up'
+                        item['indicator'] = '🔴'
+                    else:
+                        item['trend'] = 'stable'
+                        item['indicator'] = '⚪'
                 else:
-                    item['trend'] = 'stable'
-                    item['indicator'] = '⚪'
+                    item['trend'] = 'new'
+                    item['indicator'] = '🆕'
             else:
                 item['trend'] = 'new'
                 item['indicator'] = '🆕'
@@ -90,6 +102,16 @@ def process_trends(current_data_files):
             }
             
     save_history(new_history)
+    
+    # Check System Health (D019)
+    try:
+        if HISTORY_FILE.exists() and HISTORY_FILE.stat().st_size > 2 * 1024 * 1024: # 2MB
+            # Injecting system overload flag into the first file metadata
+            if current_data_files:
+                current_data_files[0]['system_overload'] = True
+    except Exception as e:
+        print(f"⚠️ Error checking health: {e}")
+        
     return current_data_files
 
 if __name__ == "__main__":

@@ -31,7 +31,9 @@ try:
     from notifier_skill import send_notification as send_external_notification
     from cleaner_skill import run_maintenance, get_maintenance_status
     from web_skill import generate_web
-    from core.storage_engine import process_trends
+    from cleaner_skill import run_maintenance, get_maintenance_status
+    from web_skill import generate_web
+    from core.storage_engine import process_trends, load_history
 except ImportError as e:
     print(f"❌ Error importando módulos: {e}")
     print("   Asegúrate de que todos los scripts existen en /scripts")
@@ -165,13 +167,7 @@ class AntigravityOrchestrator:
             error_analysis = self.run_step("D003_Brain: Análisis de Errores", brain.analyze_errors, logs_data)
             success_patterns = self.run_step("D003_Brain: Patrones de Éxito", brain.extract_success_patterns, logs_data)
             
-            # Cargar Datos y Procesar según Sector Activo
-            data_files = read_data_files()
-            
-            # PASO 2.5: Análisis de Memoria Histórica (D018)
-            data_files = self.run_step("D018_Storage: Análisis de Tendencias", process_trends, data_files)
-            
-            # Cargar Skill de Sector dinámicamente (D017)
+            # Cargar Configuración Sector Activo
             import json
             config_path = ROOT_DIR / "config_sector.json"
             active_sector = "real_estate"
@@ -179,18 +175,31 @@ class AntigravityOrchestrator:
                 with open(config_path, 'r', encoding='utf-8') as f:
                     config = json.load(f)
                     active_sector = config.get('active_sector', 'real_estate')
+
+            # SCHEDULER CHECK (D020)
+            history = load_history()
+            if not check_scheduler(active_sector, history):
+                self.log("WARNING", f"⏳ SCHEDULER: Saltando ejecución de {active_sector}. Tiempo no cumplido.")
+                print(f"⏳ SCHEDULER: {active_sector} al día. Saltando ejecución.")
+                return # Detener misión completa
+
+            # Cargar Datos y Procesar según Sector Activo
+            data_files = read_data_files()
+            
+            # PASO 2.5: Análisis de Memoria Histórica (D018)
+            data_files = self.run_step("D018_Storage: Análisis de Tendencias", process_trends, data_files)
             
             if active_sector == "fashion":
-                try:
-                    from sectors.fashion.fashion_skill import FashionSkill
-                    f_skill = FashionSkill()
-                    for entry in data_files:
-                        if entry['data'].get('sector') == 'fashion':
-                            products = entry['data'].get('products', [])
-                            entry['data']['products'] = f_skill.process_products(products)
-                            self.log("INFO", f"Procesados {len(products)} productos de Moda")
-                except Exception as e:
-                    self.log("WARNING", f"Skill de Moda no procesado: {e}")
+                    try:
+                        from sectors.fashion.fashion_skill import FashionSkill
+                        f_skill = FashionSkill()
+                        for entry in data_files:
+                            if entry['data'].get('sector') == 'fashion':
+                                products = entry['data'].get('products', [])
+                                entry['data']['products'] = f_skill.process_products(products)
+                                self.log("INFO", f"Procesados {len(products)} productos de Moda")
+                    except Exception as e:
+                        self.log("WARNING", f"Skill de Moda no procesado: {e}")
 
             opportunities = self.run_step("D003_Brain: Detección de Oportunidades", brain.analyze_properties, data_files)
             
@@ -207,6 +216,7 @@ class AntigravityOrchestrator:
             report_path = self.run_step(
                 "D005_Reporter: Generación de Reporte",
                 generate_executive_report,
+                data_files,
                 maintenance_report=maintenance_data
             )
             
@@ -282,6 +292,56 @@ class AntigravityOrchestrator:
         
         return self.results
 
+
+def get_seconds(value: int, unit: str) -> int:
+    """Convierte unidad de tiempo a segundos."""
+    unit = unit.lower()
+    if 'minute' in unit:
+        return value * 60
+    elif 'hour' in unit:
+        return value * 3600
+    elif 'day' in unit:
+        return value * 86400
+    return 0
+
+def check_scheduler(sector_name: str, history_data: dict) -> bool:
+    """
+    Verifica si se debe ejecutar el sector según configuración.
+    Returns: True si se debe ejecutar, False si se debe saltar.
+    """
+    scheduler_path = ROOT_DIR / "config" / "scheduler.json"
+    if not scheduler_path.exists():
+        return True
+        
+    try:
+        with open(scheduler_path, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+            sector_config = config.get('sectors', {}).get(sector_name)
+            
+            if not sector_config:
+                return True
+                
+            # Buscar último timestamp del sector en historial
+            last_run = None
+            for item in history_data.values():
+                if item.get('sector') == sector_name:
+                    ts = datetime.fromisoformat(item.get('last_updated'))
+                    if last_run is None or ts > last_run:
+                        last_run = ts
+            
+            if not last_run:
+                return True
+                
+            delta = (datetime.now() - last_run).total_seconds()
+            interval = get_seconds(sector_config['value'], sector_config['unit'])
+            
+            if delta < interval:
+                return False
+            return True
+            
+    except Exception as e:
+        print(f"⚠️ Error en scheduler: {e}")
+        return True
 
 def run_full_mission(target_url: str = "https://www.google.com"):
     """
