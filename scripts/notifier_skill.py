@@ -296,7 +296,13 @@ def send_notification(logger=None) -> dict:
     webhook_type = detect_webhook_type(webhook_url)
     logger.info(f"Tipo de webhook detectado: {webhook_type}")
     
-    summary = extract_summary(report_content)
+    summary = content
+    
+    # Detección de oportunidad inmobiliaria (v1.1)
+    if "OPORTUNIDAD DE INVERSIÓN" in content:
+        summary = "🚨 ¡Oportunidad detectada! Revisa el reporte adjunto.\n\n" + summary
+    
+    # Para Discord/Slack, limitar el tamaño
     
     if webhook_type == 'discord':
         success = send_discord_notification(webhook_url, summary, report_path.name)

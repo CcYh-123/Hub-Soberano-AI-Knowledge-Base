@@ -159,21 +159,39 @@ class AntigravityBrain:
             return " | ".join(success_lines[:3])
         return "Operación completada exitosamente"
     
-    def consolidate_knowledge(self, error_analysis: Dict, success_patterns: List) -> Dict:
+    def analyze_properties(self, data_files: List[Dict]) -> List[Dict]:
         """
-        Consolida el conocimiento sin duplicados.
-        
-        Args:
-            error_analysis: Análisis de errores
-            success_patterns: Patrones de éxito
+        Analiza datos inmobiliarios y detecta oportunidades.
+        """
+        opportunities = []
+        for file_entry in data_files:
+            data = file_entry.get('data', {})
+            properties = data.get('properties', [])
             
-        Returns:
-            Conocimiento consolidado
+            for prop in properties:
+                precio = prop.get('precio', 0)
+                m2 = prop.get('m2', 1)
+                precio_m2 = precio / m2
+                
+                prop['precio_m2'] = round(precio_m2, 2)
+                
+                if precio_m2 < 1500:
+                    prop['tag'] = 'OPORTUNIDAD DE INVERSIÓN'
+                    opportunities.append(prop)
+                else:
+                    prop['tag'] = 'MERCADO'
+                    
+        return opportunities
+
+    def consolidate_knowledge(self, error_analysis: Dict, success_patterns: List, opportunities: List = None) -> Dict:
+        """
+        Consolida el conocimiento sin duplicados, incluyendo oportunidades.
         """
         knowledge = {
             'errors': {},
             'successes': [],
-            'recommendations': []
+            'recommendations': [],
+            'opportunities': opportunities or []
         }
         
         # Consolidar errores (eliminar duplicados)

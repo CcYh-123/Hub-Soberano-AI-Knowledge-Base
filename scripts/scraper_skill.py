@@ -57,18 +57,37 @@ def mock_scrape(url):
     log_event("INFO", f"Iniciando extracción desde: {url}")
     
     try:
-        # Simulación de éxito
-        if "google" in url:
+        # Simulación de éxito con datos inmobiliarios
+        if "google" in url or "inmuebles" in url:
             result = {
                 "status": "success",
                 "url": url,
-                "content": "Sample Search Data",
                 "timestamp": datetime.datetime.now().isoformat(),
-                "scraper_version": "1.0.0"
+                "scraper_version": "1.1.0",
+                "properties": [
+                    {
+                        "zona": "Palermo",
+                        "precio": 125000,
+                        "m2": 85,
+                        "link": "https://ejemplo.com/p1"
+                    },
+                    {
+                        "zona": "Recoleta",
+                        "precio": 210000,
+                        "m2": 70,
+                        "link": "https://ejemplo.com/p2"
+                    },
+                    {
+                        "zona": "Villa Crespo",
+                        "precio": 95000,
+                        "m2": 65,
+                        "link": "https://ejemplo.com/p3"
+                    }
+                ]
             }
             saved_path = save_data(result)
             if saved_path:
-                log_event("SUCCESS", f"Scraping completado exitosamente para {url}")
+                log_event("SUCCESS", f"Extracción inmobiliaria completada para {url}")
                 return result
             else:
                 raise Exception("Error al guardar datos extraídos")

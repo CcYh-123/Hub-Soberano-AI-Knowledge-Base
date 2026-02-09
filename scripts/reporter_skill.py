@@ -169,50 +169,51 @@ Este reporte consolida los datos extraídos por el sistema Antigravity y las lec
 
 """
     
-    # Añadir detalle de cada archivo de datos
-    for i, data_file in enumerate(data_files, 1):
-        content += f"### {i}. {data_file['filename']}\n"
-        content += f"**Ruta:** `{data_file['path']}`\n\n"
-        content += "**Contenido:**\n```json\n"
-        content += json.dumps(data_file['data'], indent=2, ensure_ascii=False)
-        content += "\n```\n\n"
+    # Sección Inmobiliaria (D003/D004)
+    content += "## 🏠 Análisis de Propiedades Detectadas\n\n"
+    content += "| Zona | Precio | Superficie m2 | Precio/m2 | Estado |\n"
+    content += "|------|--------|---------------|-----------|--------|\n"
     
-    # Añadir insights
-    content += "---\n\n## 💡 Insights Generados\n\n"
+    for entry in data_files:
+        properties = entry.get('data', {}).get('properties', [])
+        for prop in properties:
+            zona = prop.get('zona', 'N/A')
+            precio = f"${prop.get('precio', 0):,}"
+            m2 = prop.get('m2', 0)
+            p_m2 = f"${prop.get('precio_m2', 0):,}"
+            tag = prop.get('tag', 'MERCADO')
+            # Resaltar oportunidades con emoji
+            tag_display = f"🚨 **{tag}**" if "OPORTUNIDAD" in tag else tag
+            
+            content += f"| {zona} | {precio} | {m2} | {p_m2} | {tag_display} |\n"
+    
+    content += "\n---\n\n## 💡 Insights Estratégicos\n\n"
     
     for insight in insights:
         content += f"### {insight['tipo']}\n"
         content += f"{insight['contenido']}\n\n"
     
-    # Añadir reporte de mantenimiento (D010)
+    # Reporte de mantenimiento (opcional)
     if maintenance_report:
         content += "---\n\n"
         content += maintenance_report
         content += "\n\n"
     
-    # Añadir extracto de la base de conocimiento
-    content += "---\n\n## 🧠 Extracto de Base de Conocimiento\n\n"
+    # Base de Conocimiento (Simplificada para CTO)
+    content += "---\n\n## 🧠 Inteligencia Comercial\n\n"
     
     if knowledge_content:
-        # Extraer solo el resumen
-        lines = knowledge_content.split('\n')
-        summary_lines = []
-        capture = False
-        
-        for line in lines:
-            if "## 📊 Resumen de Análisis" in line:
-                capture = True
-            elif line.startswith("## ") and capture:
-                break
-            elif capture:
-                summary_lines.append(line)
-        
-        if summary_lines:
-            content += "\n".join(summary_lines).strip()
+        # Extraer recomendaciones comerciales
+        if "💡" in knowledge_content:
+            content += "### Recomendaciones del Sistema\n"
+            lines = knowledge_content.split('\n')
+            for line in lines:
+                if line.strip().startswith("- 💡") or line.strip().startswith("💡"):
+                    content += f"{line.strip()}\n"
         else:
-            content += "*Ver KNOWLEDGE_BASE.md para detalles completos.*"
+            content += "*No se requieren acciones inmediatas de infraestructura.*\n"
     else:
-        content += "*Base de conocimiento no disponible.*"
+        content += "*Cerebro analítico en fase de aprendizaje.*"
     
     # Footer
     content += f"""

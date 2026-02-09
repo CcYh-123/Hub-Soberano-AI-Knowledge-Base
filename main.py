@@ -25,7 +25,7 @@ try:
     from logger_skill import create_logger
     from scraper_skill import mock_scrape
     from brain_skill import create_brain
-    from reporter_skill import generate_executive_report
+    from reporter_skill import generate_executive_report, read_data_files
     from comms_skill import send_notification, send_mission_summary, send_critical_alert
     from heartbeat_skill import check_health
     from notifier_skill import send_notification as send_external_notification
@@ -155,15 +155,25 @@ class AntigravityOrchestrator:
                 self.log("WARNING", "Scraping no retornó datos, continuando con análisis")
             
             # ============================================================
-            # PASO 2: APRENDIZAJE (D003 - Brain)
+            # PASO 2: ANÁLISIS (D003 - Brain)
             # ============================================================
-            brain = create_brain()
-            knowledge = self.run_step(
-                "D003_Brain: Análisis y Aprendizaje",
-                brain.learn
-            )
+            brain = create_brain() # Ensure brain is created before its methods are called
+            logs_data = self.run_step("D003_Brain: Lectura de Logs", brain.read_logs)
+            error_analysis = self.run_step("D003_Brain: Análisis de Errores", brain.analyze_errors, logs_data)
+            success_patterns = self.run_step("D003_Brain: Patrones de Éxito", brain.extract_success_patterns, logs_data)
             
-            # ============================================================
+            # Especialización Inmobiliaria v1.1
+            data_files = read_data_files()
+            opportunities = self.run_step("D003_Brain: Detección de Oportunidades", brain.analyze_properties, data_files)
+            
+            knowledge = self.run_step(
+                "D003_Brain: Consolidación", 
+                brain.consolidate_knowledge, 
+                error_analysis, 
+                success_patterns,
+                opportunities=opportunities
+            )
+            self.run_step("D003_Brain: Actualización KB", brain.update_knowledge_base, knowledge)        # ============================================================
             # PASO 3: REPORTERÍA (D005 - Reporter)
             # ============================================================
             report_path = self.run_step(

@@ -1,7 +1,26 @@
 {
     "status": "success",
     "url": "https://www.google.com",
-    "content": "Sample Search Data",
-    "timestamp": "2026-02-09T09:31:14.651166",
-    "scraper_version": "1.0.0"
+    "timestamp": "2026-02-09T09:58:45.937069",
+    "scraper_version": "1.1.0",
+    "properties": [
+        {
+            "zona": "Palermo",
+            "precio": 125000,
+            "m2": 85,
+            "link": "https://ejemplo.com/p1"
+        },
+        {
+            "zona": "Recoleta",
+            "precio": 210000,
+            "m2": 70,
+            "link": "https://ejemplo.com/p2"
+        },
+        {
+            "zona": "Villa Crespo",
+            "precio": 95000,
+            "m2": 65,
+            "link": "https://ejemplo.com/p3"
+        }
+    ]
 }

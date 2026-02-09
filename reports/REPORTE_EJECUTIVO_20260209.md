@@ -1,7 +1,7 @@
 # 📊 REPORTE EJECUTIVO ANTIGRAVITY
 
-**Fecha de Generación:** 2026-02-09 09:31:14  
-**ID de Ejecución:** D7DDD012  
+**Fecha de Generación:** 2026-02-09 09:58:46  
+**ID de Ejecución:** 106A9E07  
 **Generado por:** D005_Reporter
 
 ---
@@ -16,47 +16,23 @@ Este reporte consolida los datos extraídos por el sistema Antigravity y las lec
 
 **Total de Archivos:** 2
 
-### 1. raw_data.json
-**Ruta:** `C:\Users\Lenovo\Antigravity_Home\Proyecto_Antigravity\data\raw_data.json`
+## 🏠 Análisis de Propiedades Detectadas
 
-**Contenido:**
-```json
-{
-  "status": "success",
-  "url": "https://www.google.com",
-  "content": "Sample Search Data",
-  "timestamp": "2026-02-09T09:31:14.651166",
-  "scraper_version": "1.0.0"
-}
-```
-
-### 2. scrape_20260208_192317.json
-**Ruta:** `C:\Users\Lenovo\Antigravity_Home\Proyecto_Antigravity\data\scrape_20260208_192317.json`
-
-**Contenido:**
-```json
-{
-  "status": "success",
-  "url": "https://www.google.com",
-  "content": "Sample Search Data",
-  "timestamp": "2026-02-08T19:23:17.415990",
-  "scraper_version": "1.0.0",
-  "context": {
-    "project": "Antigravity",
-    "purpose": "Testing D004"
-  }
-}
-```
+| Zona | Precio | Superficie m2 | Precio/m2 | Estado |
+|------|--------|---------------|-----------|--------|
+| Palermo | $125,000 | 85 | $0 | MERCADO |
+| Recoleta | $210,000 | 70 | $0 | MERCADO |
+| Villa Crespo | $95,000 | 65 | $0 | MERCADO |
 
 ---
 
-## 💡 Insights Generados
+## 💡 Insights Estratégicos
 
 ### Resumen de Extracción
 Se procesaron 2 archivos de datos, 2 extracciones exitosas.
 
 ### Análisis Temporal
-Datos recolectados entre 2026-02-08T19:23:17.415990 y 2026-02-09T09:31:14.651166
+Datos recolectados entre 2026-02-08T19:23:17.415990 y 2026-02-09T09:58:45.937069
 
 ### Estado del Sistema
 ⚠️ Se detectaron patrones de error. Revisar KNOWLEDGE_BASE.md para detalles.
@@ -65,12 +41,12 @@ Datos recolectados entre 2026-02-08T19:23:17.415990 y 2026-02-09T09:31:14.651166
 
 ## 🛠️ Estado de Mantenimiento
 
-**Fecha:** 2026-02-09 09:31:14
+**Fecha:** 2026-02-09 09:58:45
 **Retención:** 7 días
 
 | Métrica | Valor |
 |---------|-------|
-| Archivos Escaneados | 20 |
+| Archivos Escaneados | 29 |
 | Archivos Purgados | 0 |
 | Archivos Archivados | 0 |
 | Espacio Liberado | 0 bytes |
@@ -80,13 +56,10 @@ Datos recolectados entre 2026-02-08T19:23:17.415990 y 2026-02-09T09:31:14.651166
 
 ---
 
-## 🧠 Extracto de Base de Conocimiento
+## 🧠 Inteligencia Comercial
 
-- **Tipos de Errores Detectados:** 1
-- **Patrones Exitosos:** 5
-- **Recomendaciones Generadas:** 0
+### Recomendaciones del Sistema
 
----
 
 ---
 
@@ -94,8 +67,8 @@ Datos recolectados entre 2026-02-08T19:23:17.415990 y 2026-02-09T09:31:14.651166
 
 | Campo | Valor |
 |-------|-------|
-| **ID Ejecución** | D7DDD012 |
-| **Timestamp** | 2026-02-09 09:31:14 |
+| **ID Ejecución** | 106A9E07 |
+| **Timestamp** | 2026-02-09 09:58:46 |
 | **Archivos Procesados** | 2 |
 | **Insights Generados** | 3 |
 | **Directiva** | D005_Reporter |
