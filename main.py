@@ -27,6 +27,7 @@ try:
     from brain_skill import create_brain
     from reporter_skill import generate_executive_report
     from comms_skill import send_notification, send_mission_summary, send_critical_alert
+    from heartbeat_skill import check_health
 except ImportError as e:
     print(f"❌ Error importando módulos: {e}")
     print("   Asegúrate de que todos los scripts existen en /scripts")
@@ -264,6 +265,14 @@ def main():
             print(f"      ✗ {step_info['step']}: {step_info['error']}")
     
     print("="*70)
+    
+    # ============================================================
+    # HEARTBEAT: Validación de salud post-ejecución (D008)
+    # ============================================================
+    print("\n💓 Ejecutando Heartbeat D008...")
+    health = check_health(hours=1)
+    print(f"   Estado de salud: {health['overall_health']}")
+    
     print("\n🔮 Sistema Antigravity - Nivel 7 Operativo\n")
     
     return 0 if results['success'] else 1
