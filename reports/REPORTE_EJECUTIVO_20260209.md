@@ -1,7 +1,7 @@
 # 💊 REPORTE ESTRATÉGICO: FARMACIA
 
-**Fecha de Generación:** 2026-02-09 14:45:45  
-**ID de Ejecución:** 2E21A136  
+**Fecha de Generación:** 2026-02-09 21:07:42  
+**ID de Ejecución:** BD84BEF1  
 **Generado por:** D005_Reporter v1.4
 
 ---
@@ -20,7 +20,7 @@ Este reporte consolida la inteligencia extraída para el sector **Farmacia**, op
 
 | Medicamento | Laboratorio | Precio | Stock | Estado |
 | --- | --- | --- | --- | --- |
-| Amoxicilina 500mg | Bayer | $1,100 🚨 | 45 | MERCADO |
+| Amoxicilina 500mg | Bayer | $1,100 ⚪ | 45 | MERCADO |
 | Ibuprofeno 600mg | Roemmers | $850 ⚪ | 5 | 🚨 **ALERTA: BAJO STOCK** |
 | Vitamina C | Redoxon | $1,800 ⚪ | 100 | 🚨 **OPORTUNIDAD: PRECIO OFERTA** |
 
@@ -32,7 +32,7 @@ Este reporte consolida la inteligencia extraída para el sector **Farmacia**, op
 Se procesaron 5 archivos de datos, 4 extracciones exitosas.
 
 ### Análisis Temporal
-Datos recolectados entre 2026-02-08T19:23:17.415990 y 2026-02-09T14:45:45.523663
+Datos recolectados entre 2026-02-08T19:23:17.415990 y 2026-02-09T21:07:40.391916
 
 ### Estado del Sistema
 ⚠️ Se detectaron patrones de error. Revisar KNOWLEDGE_BASE.md para detalles.
@@ -41,12 +41,12 @@ Datos recolectados entre 2026-02-08T19:23:17.415990 y 2026-02-09T14:45:45.523663
 
 ## 🛠️ Estado de Mantenimiento
 
-**Fecha:** 2026-02-09 14:45:45
+**Fecha:** 2026-02-09 21:07:40
 **Retención:** 7 días
 
 | Métrica | Valor |
 |---------|-------|
-| Archivos Escaneados | 139 |
+| Archivos Escaneados | 159 |
 | Archivos Purgados | 0 |
 | Archivos Archivados | 0 |
 | Espacio Liberado | 0 bytes |
@@ -67,8 +67,8 @@ Datos recolectados entre 2026-02-08T19:23:17.415990 y 2026-02-09T14:45:45.523663
 
 | Campo | Valor |
 |-------|-------|
-| **ID Ejecución** | 2E21A136 |
-| **Timestamp** | 2026-02-09 14:45:45 |
+| **ID Ejecución** | BD84BEF1 |
+| **Timestamp** | 2026-02-09 21:07:42 |
 | **Archivos Procesados** | 5 |
 | **Insights Generados** | 3 |
 | **Directiva** | D005_Reporter |

@@ -45,13 +45,29 @@ def deploy():
         if not (PUBLIC_ROOT / ".git").exists():
             print("🌱 Inicializando repositorio git público...")
             subprocess.run(["git", "init"], cwd=str(PUBLIC_ROOT), check=True)
-            # Aquí podrías añadir el remote si el usuario lo proporciona
-        
+            subprocess.run(["git", "branch", "-M", "main"], cwd=str(PUBLIC_ROOT), check=True)
+
+        # Configurar remote si no existe
+        try:
+            remotes = subprocess.run(["git", "remote"], cwd=str(PUBLIC_ROOT), capture_output=True, text=True).stdout
+            if "origin" not in remotes:
+                print("🔗 Configurando remote origin...")
+                subprocess.run(["git", "remote", "add", "origin", "https://github.com/CcYh-123/Antigravity_Dashboard.git"], cwd=str(PUBLIC_ROOT), check=True)
+            else:
+                # Asegurar que el remote sea el correcto
+                subprocess.run(["git", "remote", "set-url", "origin", "https://github.com/CcYh-123/Antigravity_Dashboard.git"], cwd=str(PUBLIC_ROOT), check=True)
+        except Exception as e:
+            print(f"⚠️ Warning chequeando remotes: {e}")
+
         subprocess.run(["git", "add", "."], cwd=str(PUBLIC_ROOT), check=True)
-        subprocess.run(["git", "commit", "-m", "UPDATE: Strategic Dashboard Sync (Automated)"], cwd=str(PUBLIC_ROOT), check=True)
         
-        # El push fallará si no hay remote, pero el commit local es éxito
-        print("✅ Sincronización local completada.")
+        # Commit (check=False para evitar error si no hay cambios)
+        subprocess.run(["git", "commit", "-m", "UPDATE: Strategic Dashboard Sync (Automated)"], cwd=str(PUBLIC_ROOT), check=False)
+        
+        print("🚀 Enviando a GitHub Pages...")
+        subprocess.run(["git", "push", "-u", "origin", "main"], cwd=str(PUBLIC_ROOT), check=True)
+        
+        print("✅ Sincronización COMPLETADA: https://CcYh-123.github.io/Antigravity_Dashboard")
         return True
     except Exception as e:
         print(f"⚠️ Error en Git del Dashboard: {e}")

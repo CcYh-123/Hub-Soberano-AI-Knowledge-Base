@@ -32,6 +32,7 @@ try:
     from notifier_skill import send_notification as send_external_notification
     from cleaner_skill import run_maintenance, get_maintenance_status
     from web_skill import generate_web
+    from deploy_frontend import deploy as deploy_frontend
     from core.storage_engine import process_trends, load_history
 except ImportError as e:
     print(f"❌ Error importando módulos: {e}")
@@ -208,6 +209,14 @@ class AntigravityOrchestrator:
             self.run_step(
                 "D013_Web: Generación de Interfaz",
                 generate_web
+            )
+            
+            # ============================================================
+            # DEPLOYMENT: Sincronización con Vitrina Pública (D015)
+            # ============================================================
+            self.run_step(
+                "D015_Deploy: Sincronización Dashboard",
+                deploy_frontend
             )
             
             # ============================================================
