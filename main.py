@@ -94,13 +94,15 @@ class AntigravityOrchestrator:
             raise
     
     
-    def run_full_mission(self, target_url: str = "https://www.google.com", force: bool = False):
+    def run_full_mission(self, target_url: str = "https://www.google.com", force: bool = False, tenant_id: str = "default-client"):
         """
         Ejecuta el ciclo completo de la misión Antigravity.
         Args:
             target_url: URL objetivo
             force: Si es True, salta las restricciones de tiempo del scheduler.
+            tenant_id: ID del cliente (D011)
         """
+        self.tenant_id = tenant_id
         print("\n" + "="*70)
         print("🚀 ANTIGRAVITY - ORQUESTADOR CENTRAL")
         print(f"📋 Misión: {self.mission_name}")
@@ -114,6 +116,26 @@ class AntigravityOrchestrator:
         if force:
             self.log("WARNING", "EJECUCIÓN FORZADA ACTIVADA")
         
+        # ============================================================
+        # VERIFICACIÓN DE SUSCRIPCIÓN (D012 - Monetización)
+        # ============================================================
+        db = SessionLocal()
+        try:
+            tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+            if not tenant:
+                # Intentar por slug si el ID falla (compatibilidad)
+                tenant = db.query(Tenant).filter(Tenant.slug == tenant_id).first()
+            
+            if not tenant or tenant.subscription_tier != 'pro':
+                msg = f"🚫 ACCESO DENEGADO (D012): El Tenant '{tenant_id}' no tiene suscripción PRO ativa."
+                print(f"\n{msg}\nSolo los reportes existentes están disponibles.")
+                self.log("ERROR", msg)
+                return { "success": False, "error": "Subscription required" }
+                
+            self.log("SUCCESS", f"Suscripción validada: {tenant.subscription_tier.upper()}")
+        finally:
+            db.close()
+
         maintenance_data = ""
         
         try:
@@ -135,7 +157,8 @@ class AntigravityOrchestrator:
             scrape_result = self.run_step(
                 "D004_Scraper: Extracción de Datos",
                 mock_scrape,
-                target_url
+                target_url,
+                tenant_id=self.tenant_id
             )
             
             if not scrape_result:
@@ -170,7 +193,7 @@ class AntigravityOrchestrator:
             data_files = read_data_files()
             
             # PASO 2.5: Análisis de Memoria Histórica (D018)
-            data_files = self.run_step("D018_Storage: Análisis de Tendencias", process_trends, data_files)
+            data_files = self.run_step("D018_Storage: Análisis de Tendencias", process_trends, data_files, tenant_id=self.tenant_id)
             
             if active_sector == "fashion":
                     try:
@@ -184,7 +207,19 @@ class AntigravityOrchestrator:
                     except Exception as e:
                         self.log("WARNING", f"Skill de Moda no procesado: {e}")
 
-            opportunities = self.run_step("D003_Brain: Detección de Oportunidades", brain.analyze_properties, data_files)
+            if active_sector == "real_estate":
+                    try:
+                        from sectors.real_estate.real_estate_skill import RealEstateSkill
+                        re_skill = RealEstateSkill()
+                        for entry in data_files:
+                            if entry['data'].get('sector') == 'real_estate' or not entry['data'].get('sector'):
+                                props = entry['data'].get('properties', [])
+                                entry['data']['properties'] = re_skill.process_properties(props)
+                                self.log("INFO", f"Procesadas {len(props)} propiedades de Inmobiliaria")
+                    except Exception as e:
+                        self.log("WARNING", f"Skill Inmobiliaria no procesado: {e}")
+
+            opportunities = self.run_step("D003_Brain: Detección de Oportunidades", brain.analyze_opportunities, data_files)
             
             knowledge = self.run_step(
                 "D003_Brain: Consolidación", 
@@ -342,7 +377,7 @@ def check_scheduler(sector_name: str, history_data: dict, force: bool = False) -
         print(f"⚠️ Error en scheduler: {e}")
         return True
 
-def run_full_mission(target_url: str = "https://www.google.com", force: bool = False):
+def run_full_mission(target_url: str = "https://www.google.com", force: bool = False, tenant_id: str = "default-client"):
     """
     Función de conveniencia para ejecutar una misión completa.
     
@@ -354,13 +389,15 @@ def run_full_mission(target_url: str = "https://www.google.com", force: bool = F
         Resultados de la misión
     """
     orchestrator = AntigravityOrchestrator("FULL_CYCLE")
-    return orchestrator.run_full_mission(target_url, force=force)
+    return orchestrator.run_full_mission(target_url, force=force, tenant_id=tenant_id)
 
 
 def main():
     """Punto de entrada principal del sistema Antigravity."""
     parser = argparse.ArgumentParser(description="Antigravity System Orchestrator")
     parser.add_argument("--force", action="store_true", help="Forzar ejecución ignorando scheduler (D022)")
+    parser.add_argument("--tenant", type=str, help="ID del cliente para Multi-Tenancy (D011)")
+    parser.add_argument("--url", type=str, default="https://www.google.com", help="URL objetivo para scraping")
     args = parser.parse_args()
 
     print("\n" + "🌌"*35)
@@ -369,8 +406,13 @@ def main():
     print("                    Nivel 7")
     print("\n" + "🌌"*35 + "\n")
     
-    # Ejecutar misión completa
-    results = run_full_mission(force=args.force)
+    tenant_id = args.tenant
+    if not tenant_id:
+        print("\n❌ ERROR: Se requiere --tenant para operar (Directiva D011)")
+        print("   Uso: py main.py --tenant demo-saas")
+        return 1
+
+    results = run_full_mission(target_url=args.url, force=args.force, tenant_id=tenant_id)
     
     # Resumen final
     print("\n" + "="*70)

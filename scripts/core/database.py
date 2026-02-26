@@ -29,6 +29,7 @@ class Tenant(Base):
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String(100), nullable=False)
     slug = Column(String(50), unique=True, nullable=False)
+    owner_id = Column(String(36), nullable=True) # Linked to auth.users in Supabase
     subscription_tier = Column(String(20), default='free') # 'free' or 'pro'
     created_at = Column(DateTime, default=datetime.utcnow)
     

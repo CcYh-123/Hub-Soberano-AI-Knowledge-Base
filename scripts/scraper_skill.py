@@ -49,45 +49,90 @@ def save_data(data, filename="raw_data.json"):
         log_event("ERROR", f"Error al guardar datos: {str(e)}")
         return None
 
-def mock_scrape(url):
+def mock_scrape(url, tenant_id="default-client"):
     """
     Simulación de scrape (Sustituir por lógica de Apify/BeautifulSoup)
     Incluye manejo de errores para alimentar al Brain (D003).
     """
-    log_event("INFO", f"Iniciando extracción desde: {url}")
+    log_event("INFO", f"Iniciando extracción para tenant [{tenant_id}] desde: {url}")
     
     try:
-        # Simulación de éxito con datos inmobiliarios
-        if "google" in url or "inmuebles" in url:
+        if "fashion" in url or "ropa" in url:
+            is_seasonal_change = "season" in url
             result = {
                 "status": "success",
+                "tenant_id": tenant_id,
+                "sector": "fashion",
+                "url": url,
+                "timestamp": datetime.datetime.now().isoformat(),
+                "scraper_version": "1.2.0",
+                "products": [
+                    {
+                        "prenda": "Camisa de Lino",
+                        "marca": "Zara",
+                        "precio_original": 60,
+                        "precio_oferta": 25 if is_seasonal_change else 55,
+                        "stock": 0 if "stock" in url else 100,
+                        "vistas_24h": 1500 if "viral" in url else 50
+                    },
+                    {
+                        "prenda": "Vestido Floral",
+                        "marca": "H&M",
+                        "precio_original": 45,
+                        "precio_oferta": 15 if is_seasonal_change else 40,
+                        "stock": 5,
+                        "vistas_24h": 2000 if "viral" in url else 100
+                    },
+                    {
+                        "prenda": "Bolso de Cuero",
+                        "marca": "Prada",
+                        "precio_original": 1200,
+                        "precio_oferta": 600 if is_seasonal_change else 1150,
+                        "stock": 2,
+                        "vistas_24h": 5000 if "viral" in url else 200
+                    }
+                ]
+            }
+            saved_path = save_data(result, filename=f"raw_data_fashion_{tenant_id}.json")
+            if saved_path:
+                log_event("SUCCESS", f"Extracción de moda completada para {url} (Tenant: {tenant_id})")
+                return result
+            else:
+                raise Exception("Error al guardar datos extraídos")
+
+        # Simulación de éxito con datos inmobiliarios (Existente)
+        elif "google" in url or "inmuebles" in url:
+            is_drop = "drop" in url
+            result = {
+                "status": "success",
+                "tenant_id": tenant_id,
                 "url": url,
                 "timestamp": datetime.datetime.now().isoformat(),
                 "scraper_version": "1.1.0",
                 "properties": [
                     {
                         "zona": "Palermo",
-                        "precio": 125000,
+                        "precio": 100000 if is_drop else 125000,
                         "m2": 85,
                         "link": "https://ejemplo.com/p1"
                     },
                     {
                         "zona": "Recoleta",
-                        "precio": 210000,
+                        "precio": 150000 if is_drop else 210000,
                         "m2": 70,
                         "link": "https://ejemplo.com/p2"
                     },
                     {
                         "zona": "Villa Crespo",
-                        "precio": 95000,
+                        "precio": 70000 if is_drop else 95000,
                         "m2": 65,
                         "link": "https://ejemplo.com/p3"
                     }
                 ]
             }
-            saved_path = save_data(result)
+            saved_path = save_data(result, filename=f"raw_data_{tenant_id}.json")
             if saved_path:
-                log_event("SUCCESS", f"Extracción inmobiliaria completada para {url}")
+                log_event("SUCCESS", f"Extracción inmobiliaria completada para {url} (Tenant: {tenant_id})")
                 return result
             else:
                 raise Exception("Error al guardar datos extraídos")

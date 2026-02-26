@@ -19,7 +19,8 @@ import {
   Zap,
   ShoppingBag,
   Home,
-  Pill
+  Pill,
+  ArrowRight
 } from "lucide-react";
 import {
   AreaChart,
@@ -34,6 +35,7 @@ import {
 import { WhatIfSimulator } from "@/components/what-if-simulator";
 import { SubscriptionGate } from "@/components/subscription-gate";
 import { Crown } from "lucide-react";
+import { AuthGate } from "@/components/auth-gate";
 
 const API_BASE = "http://localhost:8000";
 const DEFAULT_TENANT = "demo-saas";
@@ -101,208 +103,192 @@ export default function DashboardPage() {
         setLoading(false);
       }
     }
-
     fetchData();
-    const interval = setInterval(fetchData, 30000); // Polling cada 30s
-    return () => clearInterval(interval);
   }, [activeSector]);
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-slate-950 text-white">
-        <div className="animate-pulse flex flex-col items-center gap-4">
-          <Zap className="h-12 w-12 text-blue-500 animate-bounce" />
-          <span className="text-xl font-light tracking-widest uppercase">Initializing Antigravity...</span>
-        </div>
+      <div className="h-screen bg-black flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-indigo-500"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#020617] text-slate-100 p-6 font-sans">
-      {/* Header */}
-      <header className="flex justify-between items-center mb-10 pb-6 border-b border-slate-800">
-        <div>
-          <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">
-            ANTIGRAVITY CONSOLE
-          </h1>
-          <p className="text-slate-400 mt-2 flex items-center gap-4">
-            <span className="flex items-center gap-1">
-              <ShieldCheck className="h-4 w-4 text-emerald-400" />
-              Tenant: <span className="text-slate-200 font-bold uppercase">{DEFAULT_TENANT}</span>
-            </span>
-            <Badge variant="outline" className={`${tenant?.tier === 'pro' ? 'border-amber-500/50 text-amber-500 bg-amber-500/5' : 'border-slate-500 text-slate-500'} font-black flex items-center gap-1`}>
-              {tenant?.tier === 'pro' ? <><Crown className="h-3 w-3" /> PRO</> : 'FREE'}
-            </Badge>
-          </p>
-        </div>
-
-        {/* Heartbeat Widget */}
-        <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 p-4 rounded-2xl flex items-center gap-4">
-          <div className="flex flex-col items-end">
-            <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">System Status</span>
-            <span className="text-sm font-bold text-emerald-400">{health?.overall_health}</span>
-          </div>
-          <div className="h-10 w-10 rounded-full bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
-            <Activity className="h-6 w-6 text-emerald-400 animate-[pulse_2s_infinite]" />
-          </div>
-        </div>
-      </header>
-
-      {/* Bento Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-6 grid-rows-auto">
-
-        {/* Alertas Críticas (Large Area) */}
-        <Card className="col-span-1 md:col-span-4 lg:col-span-4 bg-slate-900/30 backdrop-blur-2xl border-slate-800/50 shadow-2xl overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between border-b border-slate-800/50 bg-slate-900/20">
-            <div>
-              <CardTitle className="text-xl flex items-center gap-2">
-                <Zap className="h-5 w-5 text-amber-400" /> Brain Intelligence Alerts
-              </CardTitle>
-              <CardDescription className="text-slate-500">D003 Intelligence rules active</CardDescription>
+    <AuthGate>
+      <main className="min-h-screen bg-slate-950 p-4 md:p-8 font-sans selection:bg-indigo-500/30">
+        <div className="max-w-7xl mx-auto space-y-8">
+          {/* Header */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900/40 p-6 rounded-3xl border border-slate-800/50 backdrop-blur-sm">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 bg-indigo-500 rounded-lg flex items-center justify-center">
+                  <Activity className="h-5 w-5 text-white" />
+                </div>
+                <h1 className="text-2xl font-black text-white tracking-tight italic">ANTIGRAVITY <span className="text-indigo-500 not-italic">HUB</span></h1>
+                <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 px-2 py-0 text-[10px] uppercase font-black tracking-widest ml-2 animate-pulse">LIVE SYSTEM</Badge>
+              </div>
+              <p className="text-slate-400 text-xs font-medium uppercase tracking-wider pl-10">Consola de Inteligencia Competitiva</p>
             </div>
-            <div className="flex gap-2">
-              <Badge key="re" variant="outline" className="border-slate-700 text-slate-400">
-                <Home className="h-3 w-3 mr-1" /> RE
-              </Badge>
-              <Badge key="pha" variant="outline" className="border-slate-700 text-slate-400">
-                <Pill className="h-3 w-3 mr-1" /> PHA
-              </Badge>
-              <Badge key="fas" variant="outline" className="border-indigo-500/50 text-indigo-400 bg-indigo-500/5">
-                <ShoppingBag className="h-3 w-3 mr-1" /> FAS
-              </Badge>
+
+            <div className="flex items-center gap-3">
+              <div className="hidden md:flex items-center gap-6 px-6 py-2 bg-slate-950/50 rounded-2xl border border-slate-800/50">
+                <div className="text-center group">
+                  <p className="text-[10px] text-slate-500 uppercase font-bold tracking-tighter">Status</p>
+                  <p className="text-xs text-white font-black flex items-center gap-1">
+                    <span className="h-1.5 w-1.5 bg-emerald-500 rounded-full"></span>
+                    ACTIVE
+                  </p>
+                </div>
+                <div className="h-6 w-px bg-slate-800/50"></div>
+                <div className="text-center">
+                  <p className="text-[10px] text-slate-500 uppercase font-bold tracking-tighter">Health</p>
+                  <p className="text-xs text-indigo-400 font-extrabold">{health?.overall_health || "98.2%"}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 bg-white/5 p-1 rounded-2xl border border-white/10">
+                <div className={`px-4 py-1.5 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 ${tenant?.tier === 'pro' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20' : 'bg-slate-800 text-slate-400'}`}>
+                  {tenant?.tier === 'pro' ? <Crown className="h-3 w-3" /> : null}
+                  {tenant?.tier || 'FREE'}
+                </div>
+              </div>
             </div>
-          </CardHeader>
-          <CardContent className="p-0 max-h-[500px] overflow-y-auto">
-            <div className="divide-y divide-slate-800/50 text-white">
-              {alerts.length > 0 ? (
-                alerts.map((alert, idx) => (
-                  <div key={idx} className="p-4 hover:bg-slate-800/20 transition-all flex items-start gap-4 group">
-                    <div className={`p-3 rounded-xl bg-${alert.sector === 'real_estate' ? 'blue' : 'indigo'}-500/10 border border-${alert.sector === 'real_estate' ? 'blue' : 'indigo'}-500/20`}>
-                      <AlertTriangle className="h-5 w-5 text-amber-500" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex justify-between items-start">
-                        <span className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">{alert.sector}</span>
-                        <span className="text-[10px] text-slate-600 font-mono italic">
-                          {new Date(alert.timestamp).toLocaleTimeString()}
-                        </span>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            {/* Left Column: Metrics & Alerts */}
+            <div className="lg:col-span-4 space-y-6">
+              <Card className="bg-slate-900/50 border-slate-800/50 rounded-3xl overflow-hidden backdrop-blur-md">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg font-black text-white flex items-center gap-2 uppercase tracking-tighter italic">
+                      <AlertTriangle className="h-4 w-4 text-amber-500" />
+                      Intelligence Alerts
+                    </CardTitle>
+                    <Badge className="bg-amber-500/20 text-amber-500 border-none text-[10px] font-black">{alerts.length} NEW</Badge>
+                  </div>
+                  <CardDescription className="text-slate-400 text-xs font-medium">Critical market shifts detected by Antigravity Scraper.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4 pt-4">
+                  <div className="max-h-[500px] overflow-y-auto pr-2 space-y-3 custom-scrollbar">
+                    {alerts.length > 0 ? (
+                      alerts.map((alert, idx) => (
+                        <div key={idx} className="p-4 bg-slate-950/50 rounded-2xl border border-slate-800/30 hover:border-amber-500/30 transition-all group relative overflow-hidden">
+                          <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-30 transition-opacity">
+                            {alert.sector === 'pharmacy' ? <Pill className="h-8 w-8 text-indigo-400" /> : <ShoppingBag className="h-8 w-8 text-indigo-400" />}
+                          </div>
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="space-y-1">
+                              <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">{alert.sector}</p>
+                              <h4 className="text-sm font-black text-white leading-tight uppercase tracking-tight">{alert.item}</h4>
+                            </div>
+                            <Badge className="bg-slate-900 text-emerald-400 border border-emerald-400/20 text-[10px] font-black">${alert.price}</Badge>
+                          </div>
+                          {alert.metadata?.intelligence_note && (
+                            <div className="mt-3 text-[11px] text-slate-400 bg-slate-900/50 p-2 rounded-lg border-l-2 border-amber-500 flex items-start gap-2">
+                              <Zap className="h-3 w-3 text-amber-500 mt-0.5 shrink-0" />
+                              <span>{alert.metadata.intelligence_note}</span>
+                            </div>
+                          )}
+                          <div className="mt-3 flex items-center justify-between text-[10px] text-slate-500 font-bold uppercase tracking-tighter">
+                            <span>{new Date(alert.timestamp).toLocaleTimeString()}</span>
+                            <span className="flex items-center gap-1 group-hover:text-indigo-400 transition-colors">
+                              DETAILS <ArrowRight className="h-2.5 w-2.5" />
+                            </span>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="py-12 text-center space-y-2">
+                        <div className="h-12 w-12 bg-slate-800/30 rounded-full flex items-center justify-center mx-auto">
+                          <ShieldCheck className="h-6 w-6 text-slate-600" />
+                        </div>
+                        <p className="text-slate-500 text-xs font-bold uppercase tracking-widest tracking-tighter">No Active Alerts</p>
                       </div>
-                      <h4 className="text-md font-bold text-slate-200 group-hover:text-white transition-colors">
-                        {alert.metadata?.tag || "POTENCIAL OPORTUNIDAD"}: {alert.item}
-                      </h4>
-                      <p className="text-sm text-slate-400 mt-1">
-                        {alert.metadata?.intelligence_note || "Análisis táctico en curso."}
-                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Right Column: Chart & Simulator */}
+            <div className="lg:col-span-8 space-y-6">
+              <Card className="bg-slate-900/50 border-slate-800/50 rounded-3xl overflow-hidden backdrop-blur-md h-[400px] flex flex-col">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <CardTitle className="text-xl font-black text-white uppercase italic tracking-tighter flex items-center gap-2">
+                        <TrendingUp className="h-5 w-5 text-emerald-500" />
+                        Historical Price Velocity
+                      </CardTitle>
+                      <CardDescription className="text-slate-400 text-xs font-medium">Sector: {activeSector.toUpperCase()} | 24h Monitoring Interval</CardDescription>
                     </div>
-                    <div className="text-right flex flex-col items-end gap-2">
-                      <span className="text-lg font-black text-slate-100">${alert.price.toLocaleString()}</span>
-                      <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20">
-                        {alert.sector === 'fashion' ? 'VIRAL 🔥' : 'DROP 🚨'}
-                      </Badge>
+                    <div className="flex gap-2">
+                      {['fashion', 'pharmacy', 'luxury'].map((s) => (
+                        <button
+                          key={s}
+                          onClick={() => setActiveSector(s)}
+                          className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border ${activeSector === s ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-600/20' : 'bg-slate-950 border-slate-800 text-slate-500 hover:text-slate-300'}`}
+                        >
+                          {s}
+                        </button>
+                      ))}
                     </div>
                   </div>
-                ))
-              ) : (
-                <div className="p-12 text-center text-slate-500 flex flex-col items-center gap-4">
-                  <Activity className="h-10 w-10 text-slate-700" />
-                  No high-priority alerts detected in the last scan.
-                </div>
-              )}
+                </CardHeader>
+                <CardContent className="flex-1 pt-4">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={trends}>
+                      <defs>
+                        <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e293b" />
+                      <XAxis
+                        dataKey="timestamp"
+                        stroke="#475569"
+                        fontSize={10}
+                        tickFormatter={(str) => new Date(str).toLocaleTimeString()}
+                      />
+                      <YAxis
+                        stroke="#475569"
+                        fontSize={10}
+                        tickFormatter={(val) => `$${val}`}
+                      />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px' }}
+                        labelStyle={{ color: '#94a3b8', fontSize: '10px', textTransform: 'uppercase', fontWeight: 900 }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="price"
+                        stroke="#6366f1"
+                        strokeWidth={3}
+                        fillOpacity={1}
+                        fill="url(#colorPrice)"
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              <SubscriptionGate
+                tier={tenant?.tier || 'free'}
+                onUpgrade={() => {
+                  fetch(`${API_BASE}/checkout/${DEFAULT_TENANT}`, { method: 'POST' })
+                    .then(res => res.json())
+                    .then(data => { if (data.checkout_url) window.location.href = data.checkout_url; });
+                }}
+              >
+                <WhatIfSimulator tenantSlug={DEFAULT_TENANT} tenantTier={tenant?.tier || 'free'} />
+              </SubscriptionGate>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Gráfico de Tendencias (Wide Area) */}
-        <Card className="col-span-1 md:col-span-4 lg:col-span-6 bg-slate-900/30 backdrop-blur-2xl border-slate-800/50 shadow-2xl">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingDown className="h-5 w-5 text-indigo-400" /> Sector Market Trends
-              </CardTitle>
-              <CardDescription className="text-slate-500">Historical price evolution from SQLAlchemy Engine</CardDescription>
-            </div>
-            <Tabs defaultValue="fashion" className="w-[300px]" onValueChange={setActiveSector}>
-              <TabsList className="bg-slate-950/50 border border-slate-800">
-                <TabsTrigger value="fashion">Fashion</TabsTrigger>
-                <TabsTrigger value="real_estate">RE</TabsTrigger>
-                <TabsTrigger value="pharmacy">Pharma</TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </CardHeader>
-          <CardContent className="h-[300px] w-full pt-4 text-white">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={trends}>
-                <defs>
-                  <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                <XAxis
-                  dataKey="timestamp"
-                  hide={true}
-                />
-                <YAxis
-                  stroke="#475569"
-                  fontSize={10}
-                  tickFormatter={(val) => `$${val}`}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px' }}
-                  itemStyle={{ color: '#e2e8f0', fontWeight: 'bold' }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="price"
-                  stroke="#6366f1"
-                  strokeWidth={4}
-                  fillOpacity={1}
-                  fill="url(#colorPrice)"
-                  animationDuration={1500}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* KPIs & Simulator (Gated) */}
-        <SubscriptionGate
-          tier={tenant?.tier || "free"}
-          onUpgrade={async () => {
-            const res = await fetch(`${API_BASE}/checkout/${DEFAULT_TENANT}`, { method: 'POST' });
-            const data = await res.json();
-            window.open(data.checkout_url, "_blank");
-          }}
-        >
-          <WhatIfSimulator tenantSlug={DEFAULT_TENANT} tenantTier={tenant?.tier || "free"} />
-        </SubscriptionGate>
-
-        <Card className="col-span-1 md:col-span-2 lg:col-span-2 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 backdrop-blur-xl border-blue-500/20">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-slate-400 flex items-center gap-2">
-              <Activity className="h-4 w-4" /> Scan Velocity
-            </CardDescription>
-            <CardTitle className="text-4xl text-white font-black">1.2s</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-slate-500 text-sm">
-              99.9% Success Rate
-            </div>
-            <div className="mt-4 p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/10 text-[10px] text-emerald-400 font-bold uppercase">
-              Engine Stable • D008 Verificado
-            </div>
-          </CardContent>
-        </Card>
-
-      </div>
-
-      <footer className="mt-12 text-center text-[10px] text-slate-600 tracking-widest font-mono uppercase">
-        Antigravity Autonomous Agent • Secure Multi-Tenant Architecture • Build 02.25
-      </footer>
-    </div>
+          </div>
+        </div>
+      </main>
+    </AuthGate>
   );
 }

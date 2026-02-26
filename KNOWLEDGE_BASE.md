@@ -1,5 +1,5 @@
 # 🧠 BASE DE CONOCIMIENTO ANTIGRAVITY
-**Última Actualización:** 2026-02-09 21:07:42
+**Última Actualización:** 2026-02-25 19:02:17
 **Generado por:** D003_Cerebro
 
 ---
@@ -15,42 +15,55 @@
 ## ❌ Errores Identificados
 
 ### Otros errores
-**Ocurrencias:** 32
+**Ocurrencias:** 7
 
 **Ejemplos:**
-1. `20260209_091441_138972_test_errores.log`: [2026-02-09 09:14:41.139] [ERROR] Error capturado: division by zero...
-2. `20260209_091441_142651_test_excepcion.log`: [2026-02-09 09:14:41.143] [ERROR] Excepción capturada: ValueError: Error de prueba intencional...
-3. `20260209_091453_410070_test_errores.log`: [2026-02-09 09:14:53.410] [ERROR] Error capturado: division by zero...
+1. `20260225_185512_748030_notifier_d009.log`: [2026-02-25 18:55:13.517] [ERROR] Fallo al enviar notificación a discord...
+2. `20260225_185541_320459_notifier_d009.log`: [2026-02-25 18:55:41.992] [ERROR] Fallo al enviar notificación a discord...
+3. `20260225_185557_374521_scraper_skill.log`: [2026-02-25 18:55:57.906] [ERROR] Fallo en Scraper: Estructura de sitio no reconocida o Error de Conexión...
 
 ---
 
 ## ✅ Patrones Exitosos
 
-### 1. 20260209_091441_137315_test_basico.log
+### 1. 20260225_185505_924403_scraper_skill.log
 **Operaciones Exitosas:** 1
-**Resumen:** [2026-02-09 09:14:41.137] [INFO] Logger inicializado para: test_basico | [2026-02-09 09:14:41.137] [INFO] Ruta de persistencia: C:\Users\Lenovo\Antigravity_Home\Proyecto_Antigravity\executions\2026020...
+**Resumen:** [2026-02-25 18:55:05.924] [INFO] Logger inicializado para: scraper_skill | [2026-02-25 18:55:05.924] [INFO] Ruta de persistencia: C:\Users\Lenovo\Antigravity_Home\Proyecto_Antigravity\executions\20260...
 
-### 2. 20260209_091441_140630_test_context_manager.log
-**Operaciones Exitosas:** 1
-**Resumen:** [2026-02-09 09:14:41.140] [INFO] Logger inicializado para: test_context_manager | [2026-02-09 09:14:41.140] [INFO] Ruta de persistencia: C:\Users\Lenovo\Antigravity_Home\Proyecto_Antigravity\execution...
+### 2. 20260225_185505_932676_reporter_skill.log
+**Operaciones Exitosas:** 3
+**Resumen:** [2026-02-25 18:55:05.932] [INFO] Logger inicializado para: reporter_skill | [2026-02-25 18:55:05.932] [INFO] Ruta de persistencia: C:\Users\Lenovo\Antigravity_Home\Proyecto_Antigravity\executions\2026...
 
-### 3. 20260209_091453_408214_test_basico.log
-**Operaciones Exitosas:** 1
-**Resumen:** [2026-02-09 09:14:53.408] [INFO] Logger inicializado para: test_basico | [2026-02-09 09:14:53.408] [INFO] Ruta de persistencia: C:\Users\Lenovo\Antigravity_Home\Proyecto_Antigravity\executions\2026020...
+### 3. 20260225_185506_457630_orchestrator_FULL_CYCLE.log
+**Operaciones Exitosas:** 14
+**Resumen:** [2026-02-25 18:55:06.457] [INFO] Logger inicializado para: orchestrator_FULL_CYCLE | [2026-02-25 18:55:06.457] [INFO] Ruta de persistencia: C:\Users\Lenovo\Antigravity_Home\Proyecto_Antigravity\execut...
 
-### 4. 20260209_091453_413150_test_context_manager.log
+### 4. 20260225_185506_458427_cleaner_d010.log
 **Operaciones Exitosas:** 1
-**Resumen:** [2026-02-09 09:14:53.413] [INFO] Logger inicializado para: test_context_manager | [2026-02-09 09:14:53.413] [INFO] Ruta de persistencia: C:\Users\Lenovo\Antigravity_Home\Proyecto_Antigravity\execution...
+**Resumen:** [2026-02-25 18:55:06.458] [INFO] Logger inicializado para: cleaner_d010 | [2026-02-25 18:55:06.458] [INFO] Ruta de persistencia: C:\Users\Lenovo\Antigravity_Home\Proyecto_Antigravity\executions\202602...
 
-### 5. 20260209_091459_819660_test_basico.log
+### 5. 20260225_185538_751457_scraper_skill.log
 **Operaciones Exitosas:** 1
-**Resumen:** [2026-02-09 09:14:59.819] [INFO] Logger inicializado para: test_basico | [2026-02-09 09:14:59.819] [INFO] Ruta de persistencia: C:\Users\Lenovo\Antigravity_Home\Proyecto_Antigravity\executions\2026020...
+**Resumen:** [2026-02-25 18:55:38.751] [INFO] Logger inicializado para: scraper_skill | [2026-02-25 18:55:38.751] [INFO] Ruta de persistencia: C:\Users\Lenovo\Antigravity_Home\Proyecto_Antigravity\executions\20260...
 
 ---
 
 ## 💡 Recomendaciones
 
 *No hay recomendaciones en este momento.*
+
+---
+
+## 🛡️ Seguridad y Autenticación (Hardening D025)
+
+### Row Level Security (RLS)
+El sistema utiliza políticas de aislamiento total a nivel de base de datos en Supabase:
+- **Tabla `tenants`**: Protegida para que solo el `owner_id` (vinculado a `auth.users`) pueda acceder.
+- **Tabla `historical_data`**: Acceso restringido vía `tenant_id` filtrado por la propiedad del tenant.
+
+### Flujo de Acceso (Auth Gate)
+- **Frontend**: Implementado `AuthGate` en Next.js que redirige a `/login` si no hay sesión activa.
+- **Monetización**: El webhook de Stripe ahora mapea el `owner_id` del usuario autenticado al registro del Tenant, asegurando que los beneficios Pro se vinculen directamente a una identidad real.
 
 ---
 

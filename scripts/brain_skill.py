@@ -161,27 +161,85 @@ class AntigravityBrain:
     
     def analyze_properties(self, data_files: List[Dict]) -> List[Dict]:
         """
-        Analiza datos inmobiliarios y detecta oportunidades.
+        Analiza datos inmobiliarios y detecta oportunidades avanzadas (D003).
         """
-        opportunities = []
+        alerts = []
         for file_entry in data_files:
             data = file_entry.get('data', {})
-            properties = data.get('properties', [])
+            sector = data.get('sector', 'real_estate')
+            if sector != 'real_estate':
+                continue
+            items = data.get('properties', [])
             
-            for prop in properties:
-                precio = prop.get('precio', 0)
-                m2 = prop.get('m2', 1)
+            for item in items:
+                # 1. Detección por Tendencia Histórica (Critical Price Drop)
+                if item.get('trend') == 'critical':
+                    item['tag'] = 'BAJADA DE PRECIO CRÍTICA'
+                    item['indicator'] = '🚨'
+                    item['intelligence_note'] = "Se detectó caída de precio > 20% vs histórico."
+                    alerts.append(item)
+                
+                # 2. Detección por Umbrales Inmobiliarios (D003)
+                precio = item.get('precio', 0)
+                m2 = item.get('m2', 1)
                 precio_m2 = precio / m2
                 
-                prop['precio_m2'] = round(precio_m2, 2)
-                
                 if precio_m2 < 1500:
-                    prop['tag'] = 'OPORTUNIDAD DE INVERSIÓN'
-                    opportunities.append(prop)
-                else:
-                    prop['tag'] = 'MERCADO'
-                    
-        return opportunities
+                    item['tag'] = 'OPORTUNIDAD DE INVERSIÓN'
+                    item['intelligence_note'] = f"Precio/m2 (${round(precio_m2, 2)}) por debajo de media (1500)."
+                    alerts.append(item)
+                elif 'tag' not in item or item['tag'] == 'MERCADO':
+                        item['tag'] = 'MERCADO'
+                         
+        return alerts
+
+    def analyze_fashion(self, data_files: List[Dict]) -> List[Dict]:
+        """
+        Analiza datos de moda y detecta tendencias/oportunidades (D003).
+        """
+        fashion_alerts = []
+        for file_entry in data_files:
+            data = file_entry.get('data', {})
+            if data.get('sector') != 'fashion':
+                continue
+                
+            products = data.get('products', [])
+            for item in products:
+                # 1. Alerta de Tendencia Viral (High Traffic)
+                vistas = item.get('vistas_24h', 0)
+                if vistas > 1000:
+                    item['tag'] = 'TENDENCIA VIRAL'
+                    item['indicator'] = '🔥'
+                    item['intelligence_note'] = f"Producto altamente demandado: {vistas} vistas en 24h."
+                    fashion_alerts.append(item)
+                
+                # 2. Alerta de Liquidación de Temporada (High Discount)
+                orig = item.get('precio_original', 0)
+                oferta = item.get('precio_oferta', 0)
+                if orig > 0:
+                    desc = ((orig - oferta) / orig) * 100
+                    if desc > 40:
+                        item['tag'] = 'LIQUIDACIÓN DE TEMPORADA'
+                        item['indicator'] = '💸'
+                        item['intelligence_note'] = f"Descuento agresivo: {round(desc)}% detectado."
+                        fashion_alerts.append(item)
+                
+                # 3. Quiebre de Stock
+                if item.get('stock') == 0:
+                    item['tag'] = 'ALERTA STOCK AGOTADO'
+                    item['indicator'] = '⚠️'
+                    item['intelligence_note'] = "Oportunidad de reposición o cambio de catálogo."
+                    fashion_alerts.append(item)
+
+        return fashion_alerts
+
+    def analyze_opportunities(self, data_files: List[Dict]) -> List[Dict]:
+        """
+        Dispatcher central de inteligencia del Brain. Retorna lista plana de todas las alertas.
+        """
+        re_alerts = self.analyze_properties(data_files)
+        fashion_alerts = self.analyze_fashion(data_files)
+        return re_alerts + fashion_alerts
 
     def consolidate_knowledge(self, error_analysis: Dict, success_patterns: List, opportunities: List = None) -> Dict:
         """
