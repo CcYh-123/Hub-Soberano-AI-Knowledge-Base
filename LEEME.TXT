@@ -1,0 +1,25 @@
+# MANUAL DE SOBERANÍA Y CIERRE - ANTIGRAVITY
+
+Estimado Operador,
+
+Para dar por finalizado el hito "SaaS Core and Dashboard Finalized" y asegurar la soberanía total del proyecto, por favor ejecute los siguientes comandos en su terminal habitual estando en la raíz del proyecto (`Proyecto_Antigravity`):
+
+## 1. Generación del Reporte de Inteligencia Estratégica
+Este comando generará el reporte basado en los registros inyectados en la base de datos para los sectores Fashion, Pharmacy y Luxury.
+
+```bash
+python scripts/gen_strategic_report.py --tenant demo-saas
+```
+
+## 2. Soberanía de Código (Git-Ops)
+Estos comandos asegurarán que el código fuente, incluyendo el desbloqueo de la vista PRO del dashboard, quede respaldado en su repositorio maestro en GitHub.
+
+```bash
+git add .
+git commit -m "SaaS Core and Dashboard Finalized"
+git push
+```
+
+Una vez ejecutados estos pasos, el sistema queda formalmente completado y respaldado.
+
+-- Antigravity System
