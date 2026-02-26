@@ -101,12 +101,13 @@ def mock_scrape(url, tenant_id="default-client"):
                 raise Exception("Error al guardar datos extraídos")
 
         # Simulación de éxito con datos inmobiliarios (Existente)
-        elif "google" in url or "inmuebles" in url:
+        elif "google" in url or "inmuebles" in url or "real_estate" in url:
             is_drop = "drop" in url
             result = {
                 "status": "success",
                 "tenant_id": tenant_id,
                 "url": url,
+                "sector": "real_estate",
                 "timestamp": datetime.datetime.now().isoformat(),
                 "scraper_version": "1.1.0",
                 "properties": [
@@ -130,12 +131,51 @@ def mock_scrape(url, tenant_id="default-client"):
                     }
                 ]
             }
-            saved_path = save_data(result, filename=f"raw_data_{tenant_id}.json")
+            saved_path = save_data(result, filename=f"raw_data_real_estate_{tenant_id}.json")
             if saved_path:
                 log_event("SUCCESS", f"Extracción inmobiliaria completada para {url} (Tenant: {tenant_id})")
                 return result
             else:
                 raise Exception("Error al guardar datos extraídos")
+        
+        # Simulación de éxito con datos farmacia (NUEVO)
+        elif "farmacia" in url or "pharmacy" in url:
+            is_promo = "promo" in url
+            result = {
+                "status": "success",
+                "tenant_id": tenant_id,
+                "sector": "pharmacy",
+                "url": url,
+                "timestamp": datetime.datetime.now().isoformat(),
+                "scraper_version": "1.0.0",
+                "products": [
+                    {
+                        "nombre": "Ibuprofeno 600mg",
+                        "marca": "Pfizer",
+                        "precio": 15 if is_promo else 25,
+                        "vistas_24h": 1500 if "viral" in url else 100
+                    },
+                    {
+                        "nombre": "Amoxicilina 500mg",
+                        "marca": "Bayer",
+                        "precio": 18 if is_promo else 30,
+                        "vistas_24h": 2000 if "viral" in url else 150
+                    },
+                    {
+                        "nombre": "Vitamina C 1g",
+                        "marca": "Redoxon",
+                        "precio": 10 if is_promo else 18,
+                        "vistas_24h": 5000 if "viral" in url else 300
+                    }
+                ]
+            }
+            saved_path = save_data(result, filename=f"raw_data_pharmacy_{tenant_id}.json")
+            if saved_path:
+                log_event("SUCCESS", f"Extracción farmacéutica completada para {url} (Tenant: {tenant_id})")
+                return result
+            else:
+                raise Exception("Error al guardar datos extraídos")
+                
         else:
             # Simulación de fallo para probar el Brain
             raise Exception("Estructura de sitio no reconocida o Error de Conexión")

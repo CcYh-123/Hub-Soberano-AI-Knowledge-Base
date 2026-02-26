@@ -1,0 +1,29 @@
+{
+  "alert": "STRATEGIC_DECISION",
+  "indicator": "\ud83e\udde0",
+  "title": "ALERTA DE DECISI\u00d3N: IMPACTO ROI GLOBAL",
+  "analysis": "Net Profit Delta: +$3600. El alza en Farmacia absorbe el impacto negativo en Moda.",
+  "sectors": [
+    {
+      "sector": "pharmacy",
+      "factor": "Price +12%",
+      "profit_delta": 12000,
+      "note": "Margen blindado."
+    },
+    {
+      "sector": "fashion",
+      "factor": "Volume -8%",
+      "profit_delta": -6400,
+      "note": "Ca\u00edda estacional."
+    },
+    {
+      "sector": "real_estate",
+      "factor": "Marketing +$2,000",
+      "profit_delta": -2000,
+      "note": "Inversi\u00f3n MKT."
+    }
+  ],
+  "recommendation": "Proceder con el incremento de precios en Farmacia para blindar rentabilidad del mes.",
+  "simulation_timestamp": "2026-02-25T19:44:34.596247",
+  "db_status": "Persisted_Direct_v2"
+}

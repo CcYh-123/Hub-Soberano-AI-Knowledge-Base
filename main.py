@@ -34,6 +34,7 @@ try:
     from web_skill import generate_web
     from deploy_frontend import deploy as deploy_frontend
     from core.storage_engine import process_trends, load_history
+    from core.database import SessionLocal
 except ImportError as e:
     print(f"❌ Error importando módulos: {e}")
     print("   Asegúrate de que todos los scripts existen en /scripts")
@@ -70,7 +71,7 @@ class AntigravityOrchestrator:
         elif level == "WARNING":
             self.logger.warning(message)
     
-    def run_step(self, step_name: str, step_function, *args, **kwargs):
+    def run_stexceptep(self, step_name: str, step_function, *args, **kwargs):
         """
         Ejecuta un paso de la misión con manejo de errores.
         """
@@ -218,6 +219,18 @@ class AntigravityOrchestrator:
                                 self.log("INFO", f"Procesadas {len(props)} propiedades de Inmobiliaria")
                     except Exception as e:
                         self.log("WARNING", f"Skill Inmobiliaria no procesado: {e}")
+
+            if active_sector == "pharmacy":
+                    try:
+                        from sectors.pharmacy.pharmacy_skill import PharmacySkill
+                        ph_skill = PharmacySkill()
+                        for entry in data_files:
+                            if entry['data'].get('sector') == 'pharmacy':
+                                products = entry['data'].get('products', [])
+                                entry['data']['products'] = ph_skill.process_products(products)
+                                self.log("INFO", f"Procesados {len(products)} productos de Farmacia")
+                    except Exception as e:
+                        self.log("WARNING", f"Skill Farmacia no procesado: {e}")
 
             opportunities = self.run_step("D003_Brain: Detección de Oportunidades", brain.analyze_opportunities, data_files)
             
