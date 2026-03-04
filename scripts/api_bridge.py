@@ -126,6 +126,9 @@ async def stripe_webhook(request: Request, db=Depends(get_db)):
 
 # --- ENDPOINTS EXISTENTES ---
 
+import glob
+from datetime import datetime
+
 @app.get("/alerts/{tenant_slug}")
 def get_alerts(tenant_slug: str, db=Depends(get_db)):
     tenant = db.query(Tenant).filter(Tenant.slug == tenant_slug).first()
@@ -135,6 +138,23 @@ def get_alerts(tenant_slug: str, db=Depends(get_db)):
     history = db.query(HistoricalData).filter(HistoricalData.tenant_id == tenant.id).all()
     
     alerts = []
+    
+    # LEER EL ÚLTIMO REPORTE GENERADO
+    reports_dir = Path(__file__).parent.parent / "reports"
+    report_files = glob.glob(str(reports_dir / "*.md"))
+    if report_files:
+        latest_report = max(report_files, key=os.path.getctime)
+        alerts.append({
+            "id": "latest-report",
+            "sector": "global",
+            "item": "ESTRATEGIA",
+            "price": 0,
+            "timestamp": datetime.now().isoformat(),
+            "metadata": {
+                "intelligence_note": f"CRÍTICA: NUEVO REPORTE GENERADO ({os.path.basename(latest_report)}). LECTURA OBLIGATORIA."
+            }
+        })
+
     for entry in history:
         meta = entry.metadata_json if isinstance(entry.metadata_json, dict) else {}
         if entry.price < 50 or "trend" in meta or "alert" in str(entry.metadata_json):

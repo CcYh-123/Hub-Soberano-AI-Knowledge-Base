@@ -1,10 +1,8 @@
-
 "use client";
 
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Lock, Crown } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 
 interface SubscriptionGateProps {
     children: React.ReactNode;
@@ -18,26 +16,26 @@ export function SubscriptionGate({ children, tier, onUpgrade }: SubscriptionGate
     }
 
     return (
-        <div className="relative group overflow-hidden rounded-xl border border-white/5">
+        <div className="relative group overflow-hidden rounded-2xl border border-slate-200 bg-white">
             {/* Blurred Content Overlay */}
-            <div className="filter blur-[8px] pointer-events-none opacity-50 grayscale select-none">
+            <div className="filter blur-[8px] pointer-events-none opacity-40 grayscale select-none">
                 {children}
             </div>
 
             {/* Gate UI */}
-            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-slate-950/40 backdrop-blur-md p-6 text-center animate-in fade-in zoom-in duration-300">
-                <div className="h-16 w-16 bg-indigo-500/20 rounded-full flex items-center justify-center mb-4 border border-indigo-500/30">
-                    <Lock className="h-8 w-8 text-indigo-400" />
+            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/70 backdrop-blur-md p-6 text-center animate-in fade-in zoom-in duration-300">
+                <div className="h-16 w-16 bg-blue-50 rounded-full flex items-center justify-center mb-4 border border-blue-100 shadow-sm">
+                    <Lock className="h-8 w-8 text-blue-600" />
                 </div>
-                <h3 className="text-xl font-black text-white mb-2 flex items-center gap-2">
-                    <Crown className="h-5 w-5 text-amber-400" /> PRO FEATURE
+                <h3 className="text-xl font-bold text-slate-800 mb-2 flex items-center gap-2">
+                    <Crown className="h-5 w-5 text-amber-500" /> PRO FEATURE
                 </h3>
-                <p className="text-slate-400 text-sm max-w-[280px] mb-6">
+                <p className="text-slate-600 text-sm max-w-[280px] mb-6 font-medium">
                     El Simulador What-If y el análisis avanzado de rentabilidad requieren una suscripción activa.
                 </p>
                 <Button
                     onClick={onUpgrade}
-                    className="bg-indigo-600 hover:bg-indigo-500 text-white font-black px-8 py-6 rounded-xl shadow-lg shadow-indigo-500/20 border-t border-indigo-400/30 transition-all hover:scale-105"
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-6 rounded-xl shadow-sm transition-colors"
                 >
                     UPGRADE TO PRO NOW
                 </Button>

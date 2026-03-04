@@ -31,8 +31,8 @@ def sync_high_impact_event():
         "tenant_id": TENANT_ID,
         "organization_id": ORGANIZATION_ID,
         "sector": "pharmacy",
-        "item_key": "IMPACTO > $15,000",
-        "price": 15400.0,
+        "item_key": "FARMACIA CENTRAL",
+        "price": 12500.0,
         "timestamp": datetime.now().isoformat(),
         "metadata_json": {
             "trend": "critical",
