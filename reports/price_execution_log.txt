@@ -1,0 +1,3 @@
+[2026-03-05 16:41:53,497] INFO - Executor iniciado | DB: C:\Users\Lenovo\Antigravity_Home\Proyecto_Antigravity\data\antigravity.db
+[2026-03-05 16:41:53,499] INFO - 🚀 EJECUCIÓN REAL — Escribiendo 10 reglas en DB
+[2026-03-05 16:41:53,523] INFO - ✅ Reglas persistidas exitosamente.

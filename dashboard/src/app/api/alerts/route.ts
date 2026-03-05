@@ -1,13 +1,47 @@
-import { NextResponse } from 'next/server';
-import { supabase } from '@/utils/supabase';
+import { NextResponse, type NextRequest } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
     try {
+        const cookieStore = await cookies()
+        const supabase = createServerClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+                cookies: {
+                    getAll() {
+                        return cookieStore.getAll()
+                    },
+                    setAll(cookiesToSet) {
+                        try {
+                            cookiesToSet.forEach(({ name, value, options }) =>
+                                cookieStore.set(name, value, options)
+                            )
+                        } catch (error) { }
+                    },
+                },
+            }
+        )
+
         let customAlerts: any[] = [];
 
-        // Example check: retrieve org ID from Headers. Or simply use Auth if supabase context is available.
-        // For testing purposes, default to the known test org if not provided
-        const orgId = request.headers.get('x-organization-id') || "kixnlqjuiqtodzdubydb";
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+            return NextResponse.json({ alerts: [] }, { status: 401 });
+        }
+
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('organization_id')
+            .eq('id', user.id)
+            .single();
+
+        const orgId = profile?.organization_id;
+
+        if (!orgId) {
+            return NextResponse.json({ alerts: [] });
+        }
 
         let query = supabase
             .from('historical_data')

@@ -36,9 +36,10 @@ import { WhatIfSimulator } from "@/components/what-if-simulator";
 import { SubscriptionGate } from "@/components/subscription-gate";
 import { Crown } from "lucide-react";
 import { AuthGate } from "@/components/auth-gate";
+import { createClient } from "@/utils/supabase/client";
+import ProfitGapWidget from "@/components/ProfitGapWidget";
 
 const API_BASE = "http://localhost:8000";
-const DEFAULT_TENANT = "demo-saas";
 
 interface Tenant {
   id: string;
@@ -75,17 +76,39 @@ export default function DashboardPage() {
   const [health, setHealth] = useState<Health | null>(null);
   const [trends, setTrends] = useState<Trend[]>([]);
   const [tenant, setTenant] = useState<Tenant | null>(null);
-  const [activeSector, setActiveSector] = useState("fashion");
+  const [orgId, setOrgId] = useState<string>("demo-saas");
+  const [activeSector, setActiveSector] = useState("pharmacy");
   const [loading, setLoading] = useState(true);
+  const supabase = createClient();
 
   useEffect(() => {
     async function fetchData() {
       try {
+        let currentOrgId = "demo-saas";
+        let currentSector = "fashion";
+
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('organization_id, sector')
+            .eq('id', user.id)
+            .single();
+
+          if (profile) {
+            currentOrgId = profile.organization_id || "demo-saas";
+            currentSector = profile.sector?.toLowerCase() || "fashion";
+            setOrgId(currentOrgId);
+            setActiveSector(currentSector);
+          }
+        }
+
         const [alertsRes, healthRes, trendsRes, tenantRes] = await Promise.all([
           fetch(`/api/alerts`),
-          fetch(`${API_BASE}/health`).catch(() => new Response(JSON.stringify({ overall_health: "LOCAL (PYTHON OFFLINE)", last_sync: new Date().toISOString() }))),
-          fetch(`${API_BASE}/trends/${DEFAULT_TENANT}/${activeSector}`).catch(() => new Response(JSON.stringify([]))),
-          fetch(`${API_BASE}/tenant/${DEFAULT_TENANT}`).catch(() => new Response(JSON.stringify({ id: DEFAULT_TENANT, name: "Demo SaaS", slug: DEFAULT_TENANT, tier: "pro" })))
+          fetch(`/api/health`).catch(() => new Response(JSON.stringify({ overall_health: "LOCAL (PYTHON OFFLINE)", last_sync: new Date().toISOString() }))),
+          fetch(`/api/trends/${currentOrgId}/${currentSector}`).catch(() => new Response(JSON.stringify([]))),
+          fetch(`/api/tenant/${currentOrgId}`).catch(() => new Response(JSON.stringify({ id: currentOrgId, name: "Enterprise Hub", slug: currentOrgId, tier: "pro" })))
         ]);
 
         const alertsData = await alertsRes.json();
@@ -93,7 +116,8 @@ export default function DashboardPage() {
         const trendsData = await trendsRes.json();
         const tenantData = await tenantRes.json();
 
-        setAlerts(alertsData.alerts || []);
+        // The new API might return just an array or { alerts: [] }
+        setAlerts(Array.isArray(alertsData) ? alertsData : (alertsData.alerts || []));
         setHealth(healthData);
         setTrends(trendsData || []);
         setTenant(tenantData);
@@ -104,7 +128,7 @@ export default function DashboardPage() {
       }
     }
     fetchData();
-  }, [activeSector]);
+  }, [supabase]);
 
   if (loading) {
     return (
@@ -116,6 +140,7 @@ export default function DashboardPage() {
 
   return (
     <AuthGate>
+      <ProfitGapWidget />
       <main className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans">
         <div className="max-w-7xl mx-auto space-y-8">
           {/* Header */}
@@ -257,16 +282,11 @@ export default function DashboardPage() {
                       </CardTitle>
                       <CardDescription className="text-slate-500 text-xs">Sector: <span className="uppercase font-semibold text-slate-600">{activeSector}</span> | 24h Monitoring Interval</CardDescription>
                     </div>
-                    <div className="flex gap-2 bg-slate-50 p-1 rounded-lg border border-slate-100">
-                      {['fashion', 'pharmacy', 'luxury'].map((s) => (
-                        <button
-                          key={s}
-                          onClick={() => setActiveSector(s)}
-                          className={`px-3 py-1.5 rounded-md text-xs font-semibold capitalize transition-all ${activeSector === s ? 'bg-white border border-slate-200 text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                        >
-                          {s}
-                        </button>
-                      ))}
+                    <div className="flex gap-3 bg-slate-50 p-1.5 rounded-lg border border-slate-100 items-center">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 pl-2">Rubro Activo</span>
+                      <div className="px-3 py-1 bg-white border border-blue-200 text-blue-600 font-bold text-xs rounded-md shadow-sm uppercase tracking-wider">
+                        {activeSector}
+                      </div>
                     </div>
                   </div>
                 </CardHeader>
@@ -320,12 +340,12 @@ export default function DashboardPage() {
               <SubscriptionGate
                 tier={tenant?.tier || 'free'}
                 onUpgrade={() => {
-                  fetch(`${API_BASE}/checkout/${DEFAULT_TENANT}`, { method: 'POST' })
+                  fetch(`/api/checkout/${orgId}`, { method: 'POST' })
                     .then(res => res.json())
                     .then(data => { if (data.checkout_url) window.location.href = data.checkout_url; });
                 }}
               >
-                <WhatIfSimulator tenantSlug={DEFAULT_TENANT} tenantTier={tenant?.tier || 'pro'} />
+                <WhatIfSimulator tenantSlug={orgId} tenantTier={tenant?.tier || 'pro'} sector={activeSector} />
               </SubscriptionGate>
             </div>
           </div>

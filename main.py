@@ -34,7 +34,7 @@ try:
     from web_skill import generate_web
     from deploy_frontend import deploy as deploy_frontend
     from core.storage_engine import process_trends, load_history
-    from core.database import SessionLocal
+    from core.database import SessionLocal, Tenant
 except ImportError as e:
     print(f"❌ Error importando módulos: {e}")
     print("   Asegúrate de que todos los scripts existen en /scripts")
@@ -71,7 +71,7 @@ class AntigravityOrchestrator:
         elif level == "WARNING":
             self.logger.warning(message)
     
-    def run_stexceptep(self, step_name: str, step_function, *args, **kwargs):
+    def run_step(self, step_name: str, step_function, *args, **kwargs):
         """
         Ejecuta un paso de la misión con manejo de errores.
         """
@@ -266,6 +266,18 @@ class AntigravityOrchestrator:
                 "D015_Deploy: Sincronización Dashboard",
                 deploy_frontend
             )
+            
+            # ── Margin Guardian (POST-Reporter) ──────────────────────────────
+            try:
+                from scripts.margin_guardian import MarginGuardian
+                guardian_result = MarginGuardian().run()
+                if guardian_result["status"] == "ALERT":
+                    print(f"🚨 ALERTA: {guardian_result['critical_count']} productos críticos "
+                          f"| Gap total: ${guardian_result['total_gap']:,.2f}")
+                    print("   → Ejecutar: python scripts/price_rule_executor.py --apply")
+            except Exception as e:
+                print(f"⚠️  Guardian no bloqueante: {e}")
+            # ─────────────────────────────────────────────────────────────────
             
             # ============================================================
             # CIERRE DE MISIÓN

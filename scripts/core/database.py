@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, Float, DateTime, ForeignKey, BigInteger, JSON
+from sqlalchemy import Column, String, Float, DateTime, ForeignKey, Integer, JSON
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy import create_engine
@@ -38,7 +38,7 @@ class Tenant(Base):
 class HistoricalData(Base):
     __tablename__ = 'historical_data'
     
-    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     tenant_id = Column(String(36), ForeignKey('tenants.id'), nullable=False)
     sector = Column(String(50), nullable=False)
     item_key = Column(String(200), nullable=False)
