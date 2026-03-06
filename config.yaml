@@ -1,0 +1,14 @@
+# Antigravity Global Configuration
+# Parameters for economic indicators and operational thresholds
+
+economy:
+  monthly_inflation: 0.05  # 5% monthly (Argentina default)
+  target_margin: 0.25      # 25% target margin
+
+thresholds:
+  martyr_threshold: 0.29   # Products with margin below this are flagged
+  max_price_up: 0.40       # Max price increase allowed (40%)
+  days_inventory: 15       # Average days product stays in inventory
+
+tenants:
+  demo_saas_id: "3947b9dc-7e89-4a05-a659-46e8ccdde558"
