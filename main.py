@@ -1,482 +1,678 @@
-"""
-===============================================================================
-                          ANTIGRAVITY - ORQUESTADOR CENTRAL
-                                    main.py
-                               DIRECTIVA: D006
-===============================================================================
-Punto de entrada único para ejecutar flujos completos del sistema Antigravity.
-Coordina: Scraper (D004) -> Brain (D003) -> Reporter (D005)
-Con trazabilidad completa vía Logger (D002) y actualización del Mapa (D001)
-===============================================================================
-"""
-
-import argparse
 import sys
 import os
-from datetime import datetime
-from pathlib import Path
+from datetime import datetime, timezone
+from dotenv import load_dotenv
+from supabase import create_client
+from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
+                             QHBoxLayout, QTableWidget, QTableWidgetItem, 
+                             QLineEdit, QPushButton, QLabel, QFrame, QDialog,
+                             QHeaderView, QAbstractItemView, QMessageBox,
+                             QScrollArea, QSpinBox, QDoubleSpinBox, QFormLayout,
+                             QComboBox)
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QFont, QIcon, QColor
+import time
 
-# Agregar scripts al path para imports
-ROOT_DIR = Path(__file__).parent
-SCRIPTS_DIR = ROOT_DIR / "scripts"
-sys.path.insert(0, str(SCRIPTS_DIR))
+# ── Constantes de Negocio ──
+STOCK_MINIMO = 5  # Umbral de alerta de stock bajo
 
-# Importar skills del sistema (resto de imports igual)
-try:
-    from logger_skill import create_logger
-    from scraper_skill import mock_scrape
-    from brain_skill import create_brain
-    from reporter_skill import generate_executive_report, read_data_files
-    from comms_skill import send_notification, send_mission_summary, send_critical_alert
-    from heartbeat_skill import check_health
-    from notifier_skill import send_notification as send_external_notification
-    from cleaner_skill import run_maintenance, get_maintenance_status
-    from web_skill import generate_web
-    from deploy_frontend import deploy as deploy_frontend
-    from core.storage_engine import process_trends, load_history
-    from core.database import SessionLocal, Tenant
-except ImportError as e:
-    print(f"❌ Error importando módulos: {e}")
-    print("   Asegúrate de que todos los scripts existen en /scripts")
-    sys.exit(1)
+# ── Paleta de Colores Enterprise ──
+COLOR_BG = "#F5F7FA"
+COLOR_SIDEBAR = "#1A2634"
+COLOR_HEADER = "#FFFFFF"
+COLOR_TEXT = "#333333"
+COLOR_TEXT_LIGHT = "#A0AEC0"
+COLOR_ACCENT = "#2D3748"
+COLOR_SUCCESS = "#48BB78"
+COLOR_BORDER = "#E2E8F0"
+COLOR_DANGER = "#E53E3E"
+COLOR_WARNING_BG = "#FFF5F5"
 
+class FarmaciaEnterprise(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        load_dotenv()
+        self.init_supabase()
+        self.init_ui()
+        self.load_data()
 
-class AntigravityOrchestrator:
-    
-    def __init__(self, mission_name: str = "FULL_CYCLE"):
-        """
-        Inicializa el orquestador.
-        
-        Args:
-            mission_name: Nombre de la misión a ejecutar
-        """
-        self.mission_name = mission_name
-        self.start_time = datetime.now()
-        self.logger = create_logger(f"orchestrator_{mission_name}")
-        self.results = {
-            'mission': mission_name,
-            'start_time': self.start_time.isoformat(),
-            'steps_completed': [],
-            'steps_failed': [],
-            'success': False
-        }
-    def log(self, level: str, message: str):
-        """Registra un evento con el logger."""
-        if level == "INFO":
-            self.logger.info(message)
-        elif level == "ERROR":
-            self.logger.error(message)
-        elif level == "SUCCESS":
-            self.logger.success(message)
-        elif level == "WARNING":
-            self.logger.warning(message)
-    
-    def run_step(self, step_name: str, step_function, *args, **kwargs):
-        """
-        Ejecuta un paso de la misión con manejo de errores.
-        """
-        self.log("INFO", f"Iniciando paso: {step_name}")
-        print(f"\n🔄 Ejecutando: {step_name}...")
-        
+    def init_supabase(self):
         try:
-            result = step_function(*args, **kwargs)
-            self.results['steps_completed'].append(step_name)
-            self.log("SUCCESS", f"Paso completado: {step_name}")
-            print(f"   ✅ {step_name} completado")
-            return result
+            url = os.environ.get("SUPABASE_URL")
+            key = os.environ.get("SUPABASE_KEY")
+            self.supabase = create_client(url, key)
+            self.connected = True
         except Exception as e:
-            error_msg = f"Error en {step_name}: {str(e)}"
-            self.results['steps_failed'].append({
-                'step': step_name,
-                'error': str(e)
-            })
-            self.log("ERROR", error_msg)
-            print(f"   ❌ {step_name} falló: {str(e)}")
-            raise
-    
-    
-    def run_full_mission(self, target_url: str = "https://www.google.com", force: bool = False, tenant_id: str = "default-client"):
-        """
-        Ejecuta el ciclo completo de la misión Antigravity.
-        Args:
-            target_url: URL objetivo
-            force: Si es True, salta las restricciones de tiempo del scheduler.
-            tenant_id: ID del cliente (D011)
-        """
-        self.tenant_id = tenant_id
-        print("\n" + "="*70)
-        print("🚀 ANTIGRAVITY - ORQUESTADOR CENTRAL")
-        print(f"📋 Misión: {self.mission_name}")
-        print(f"⏰ Inicio: {self.start_time.strftime('%Y-%m-%d %H:%M:%S')}")
-        if force:
-             print("\033[95m[BYPASS] MODO FORCE DETECTADO: Ejecutando auditoría completa ahora.\033[0m")
-        print("="*70)
+            print(f"Error de conexión: {e}")
+            self.connected = False
+
+    def init_ui(self):
+        self.setWindowTitle("Sistema de Gestión Universal - Inventario Inteligente")
+        self.setGeometry(100, 100, 1280, 800)
+        self.setStyleSheet(f"""
+            QWidget {{
+                font-family: 'Segoe UI', Arial;
+            }}
+            QMainWindow {{
+                background-color: {COLOR_BG};
+            }}
+            QMessageBox {{
+                background-color: {COLOR_BG};
+                color: black;
+            }}
+            QMessageBox QPushButton, QInputDialog QPushButton {{
+                background-color: #E2E8F0;
+                color: black;
+                font-weight: bold;
+                border-radius: 4px;
+                padding: 6px 12px;
+            }}
+            QSpinBox, QDoubleSpinBox, QComboBox {{
+                color: black;
+                background-color: white;
+            }}
+        """)
+
+        main_widget = QWidget()
+        self.setCentralWidget(main_widget)
+        layout = QHBoxLayout(main_widget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        # ── SIDEBAR ──
+        sidebar = QFrame()
+        sidebar.setFixedWidth(240)
+        sidebar.setStyleSheet(f"background-color: {COLOR_SIDEBAR}; border: none;")
+        sidebar_layout = QVBoxLayout(sidebar)
+        sidebar_layout.setContentsMargins(20, 30, 20, 30)
+        sidebar_layout.setSpacing(15)
+
+        title_label = QLabel("SISTEMA\nUNIVERSAL")
+        title_label.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
+        title_label.setStyleSheet("color: white; margin-bottom: 20px;")
+        sidebar_layout.addWidget(title_label)
+
+        sidebar_layout.addWidget(self.create_sidebar_button("Vista General", active=True))
+        sidebar_layout.addWidget(self.create_sidebar_button("Inventario"))
+        sidebar_layout.addWidget(self.create_sidebar_button("Ventas"))
+        sidebar_layout.addWidget(self.create_sidebar_button("Reportes"))
         
-        self.log("INFO", f"=== INICIO DE MISIÓN: {self.mission_name} ===")
-        self.log("INFO", f"URL objetivo: {target_url}")
-        if force:
-            self.log("WARNING", "EJECUCIÓN FORZADA ACTIVADA")
+        sidebar_layout.addStretch()
+
+        self.conn_label = QLabel("● Sistema Online")
+        conn_color = COLOR_SUCCESS if self.connected else "#F56565"
+        self.conn_label.setStyleSheet(f"color: {conn_color}; font-weight: bold; font-size: 11px;")
+        sidebar_layout.addWidget(self.conn_label)
+
+        layout.addWidget(sidebar)
+
+        # ── CONTENIDO PRINCIPAL ──
+        content_area = QWidget()
+        content_layout = QVBoxLayout(content_area)
+        content_layout.setContentsMargins(30, 30, 30, 30)
+        content_layout.setSpacing(25)
+
+        # Header
+        header_container = QHBoxLayout()
+        header_title = QLabel("Inventario General de Productos")
+        header_title.setFont(QFont("Segoe UI", 20, QFont.Weight.Bold))
+        header_title.setStyleSheet(f"color: {COLOR_ACCENT};")
         
-        # ============================================================
-        # VERIFICACIÓN DE SUSCRIPCIÓN (D012 - Monetización)
-        # ============================================================
-        db = SessionLocal()
+        self.search_bar = QLineEdit()
+        self.search_bar.setPlaceholderText("🔍 Buscar por nombre, rubro o unidad...")
+        self.search_bar.setFixedWidth(400)
+        self.search_bar.textChanged.connect(self.filter_data)
+        self.search_bar.setStyleSheet(f"""
+            QLineEdit {{
+                background-color: #FFFFFF;
+                color: #1A2634;
+                border: 1px solid {COLOR_BORDER};
+                border-radius: 6px;
+                padding: 5px 10px;
+                font-size: 14px;
+            }}
+            QLineEdit:focus {{
+                border: 2px solid {COLOR_SIDEBAR};
+            }}
+        """)
+
+        header_container.addWidget(header_title)
+        header_container.addStretch()
+        header_container.addWidget(self.search_bar)
+        content_layout.addLayout(header_container)
+
+        # Tabla y Panel de Acciones
+        main_view_layout = QHBoxLayout()
+        
+        self.table = QTableWidget()
+        self.table.setColumnCount(6)
+        self.table.setHorizontalHeaderLabels([
+            "Nombre del Producto", "Unidad", "Precio Venta", "Costo", "Margen", "Stock"
+        ])
+        self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.table.setAlternatingRowColors(True)
+        self.table.verticalHeader().setVisible(False)
+        
+        self.table.setStyleSheet(f"""
+            QTableWidget {{
+                background-color: white;
+                border: 1px solid {COLOR_BORDER};
+                border-radius: 8px;
+                gridline-color: {COLOR_BORDER};
+                alternate-background-color: #F9FAFB;
+                selection-background-color: #CBD5E0;
+                selection-color: {COLOR_SIDEBAR};
+            }}
+            QHeaderView::section {{
+                background-color: #EDF2F7;
+                padding: 12px;
+                border: none;
+                border-bottom: 2px solid {COLOR_BORDER};
+                color: {COLOR_ACCENT};
+                font-weight: bold;
+                font-size: 13px;
+                text-align: left;
+            }}
+            QTableWidget::item {{
+                padding: 10px;
+                color: {COLOR_TEXT};
+                border-bottom: 1px solid {COLOR_BORDER};
+            }}
+            QTableWidget::item:selected {{
+                background-color: #CBD5E0;
+                color: {COLOR_SIDEBAR};
+                font-weight: bold;
+            }}
+        """)
+        
+        header = self.table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)
+        self.table.setColumnWidth(1, 100)
+        self.table.setColumnWidth(2, 120)
+        self.table.setColumnWidth(3, 110)
+        self.table.setColumnWidth(4, 100)
+        self.table.setColumnWidth(5, 80)
+
+        main_view_layout.addWidget(self.table, stretch=4)
+
+        # Panel de Acciones
+        actions_panel = QFrame()
+        actions_panel.setFixedWidth(200)
+        actions_panel.setStyleSheet(f"background-color: white; border: 1px solid {COLOR_BORDER}; border-radius: 8px;")
+        actions_layout = QVBoxLayout(actions_panel)
+        actions_layout.setContentsMargins(15, 20, 15, 20)
+        actions_layout.setSpacing(15)
+
+        actions_title = QLabel("ACCIONES")
+        actions_title.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
+        actions_title.setStyleSheet(f"color: {COLOR_TEXT_LIGHT};")
+        actions_layout.addWidget(actions_title)
+
+        self.btn_sell = self.create_action_button("Registrar Venta", "#3182CE")
+        self.btn_sell.clicked.connect(self.action_vender)
+        actions_layout.addWidget(self.btn_sell)
+
+        self.btn_buy = self.create_action_button("Cargar Stock (Compra)", "#805AD5")
+        self.btn_buy.clicked.connect(self.action_cargar_stock)
+        actions_layout.addWidget(self.btn_buy)
+
+        self.btn_price = self.create_action_button("Ajustar Precio", COLOR_ACCENT)
+        self.btn_price.clicked.connect(self.action_ajustar_precio)
+        actions_layout.addWidget(self.btn_price)
+
+        self.btn_refresh = self.create_action_button("Sincronizar", "#718096")
+        self.btn_refresh.clicked.connect(self.load_data)
+        actions_layout.addWidget(self.btn_refresh)
+
+        # Separador visual
+        separator = QFrame()
+        separator.setFixedHeight(1)
+        separator.setStyleSheet(f"background-color: {COLOR_BORDER};")
+        actions_layout.addWidget(separator)
+
+        self.btn_resumen = self.create_action_button("Resumen del Dia", "#2F855A")
+        self.btn_resumen.clicked.connect(self.action_resumen_dia)
+        actions_layout.addWidget(self.btn_resumen)
+        
+        actions_layout.addStretch()
+
+        # Indicador de stock bajo
+        self.stock_alert_label = QLabel("")
+        self.stock_alert_label.setWordWrap(True)
+        self.stock_alert_label.setStyleSheet(f"color: {COLOR_DANGER}; font-size: 11px; font-weight: bold;")
+        actions_layout.addWidget(self.stock_alert_label)
+
+        main_view_layout.addWidget(actions_panel, stretch=1)
+        content_layout.addLayout(main_view_layout)
+
+        layout.addWidget(content_area)
+
+        # StatusBar
+        self.statusBar().setStyleSheet(f"background-color: white; color: {COLOR_ACCENT}; border-top: 1px solid {COLOR_BORDER};")
+        self.statusBar().showMessage("Sistema listo.")
+
+    def create_sidebar_button(self, text, active=False):
+        btn = QPushButton(text)
+        bg = "#2D3748" if active else "transparent"
+        btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {bg};
+                color: white;
+                border: none;
+                border-radius: 5px;
+                padding: 12px;
+                text-align: left;
+                font-size: 14px;
+            }}
+            QPushButton:hover {{
+                background-color: #2D3748;
+            }}
+        """)
+        return btn
+
+    def create_action_button(self, text, color):
+        btn = QPushButton(text)
+        btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {color};
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 12px;
+                font-weight: bold;
+                font-size: 13px;
+            }}
+            QPushButton:hover {{
+                background-color: {color}E0;
+            }}
+            QPushButton:pressed {{
+                background-color: {color}C0;
+            }}
+        """)
+        return btn
+
+    def load_data(self):
+        if not self.connected: return
         try:
-            tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
-            if not tenant:
-                # Intentar por slug si el ID falla (compatibilidad)
-                tenant = db.query(Tenant).filter(Tenant.slug == tenant_id).first()
-            
-            if not tenant or tenant.subscription_tier != 'pro':
-                msg = f"🚫 ACCESO DENEGADO (D012): El Tenant '{tenant_id}' no tiene suscripción PRO ativa."
-                print(f"\n{msg}\nSolo los reportes existentes están disponibles.")
-                self.log("ERROR", msg)
-                return { "success": False, "error": "Subscription required" }
-                
-            self.log("SUCCESS", f"Suscripción validada: {tenant.subscription_tier.upper()}")
-        finally:
-            db.close()
+            response = self.supabase.table("products").select("*").order("name").execute()
+            self.all_data = response.data
+            self.display_data(self.all_data)
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Fallo al cargar datos: {e}")
 
-        maintenance_data = ""
+    def display_data(self, products):
+        self.table.setRowCount(len(products))
+        low_stock_count = 0
+
+        for i, item in enumerate(products):
+            price = float(item.get('price', 0))
+            cost = float(item.get('cost_price', 0))
+            margin = price - cost
+            stock_value = item.get('stock', 0)
+            is_low_stock = stock_value < STOCK_MINIMO
+
+            # Nombre
+            name_item = QTableWidgetItem(str(item.get("name")))
+            self.table.setItem(i, 0, name_item)
+
+            # Unidad
+            unit_item = QTableWidgetItem(str(item.get("unit_type", "Unidades")))
+            unit_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.table.setItem(i, 1, unit_item)
+
+            # Precio Venta
+            price_item = QTableWidgetItem(f"$ {price:,.2f}")
+            price_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            self.table.setItem(i, 2, price_item)
+
+            # Costo
+            cost_item = QTableWidgetItem(f"$ {cost:,.2f}")
+            cost_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            cost_item.setForeground(QColor(COLOR_TEXT_LIGHT))
+            self.table.setItem(i, 3, cost_item)
+
+            # Margen
+            margin_item = QTableWidgetItem(f"$ {margin:,.2f}")
+            margin_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            margin_color = COLOR_SUCCESS if margin > 0 else COLOR_DANGER
+            margin_item.setForeground(QColor(margin_color))
+            margin_item.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
+            self.table.setItem(i, 4, margin_item)
+            
+            # Stock
+            stock_item = QTableWidgetItem(f"{stock_value:,.3f}")
+            stock_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.table.setItem(i, 5, stock_item)
+
+            # ── ALERTA DE STOCK BAJO: Resaltar toda la fila ──
+            if is_low_stock:
+                low_stock_count += 1
+                for col in range(self.table.columnCount()):
+                    cell = self.table.item(i, col)
+                    if cell:
+                        cell.setBackground(QColor(COLOR_WARNING_BG))
+                        cell.setForeground(QColor(COLOR_DANGER))
+                        cell.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
+
+        # Actualizar indicador de alertas en el panel lateral
+        if low_stock_count > 0:
+            self.stock_alert_label.setText(f"⚠ {low_stock_count} producto(s)\ncon stock bajo (<{STOCK_MINIMO})")
+        else:
+            self.stock_alert_label.setText("")
+
+    def filter_data(self):
+        text = self.search_bar.text().lower()
+        if not hasattr(self, 'all_data'): return
+        filtered = [x for x in self.all_data if text in x['name'].lower()]
+        self.display_data(filtered)
+
+    def action_vender(self):
+        row = self.table.currentRow()
+        if row < 0:
+            QMessageBox.warning(self, "Aviso", "Seleccione un producto para vender.")
+            return
         
+        product_name = self.table.item(row, 0).text()
+        current_product = next(x for x in self.all_data if x['name'] == product_name)
+        unit = current_product.get('unit_type', 'Unidades')
+        
+        if current_product['stock'] <= 0:
+            QMessageBox.critical(self, "Sin Stock", f"No hay {unit} disponibles.")
+            return
+
+        # Venta siempre con decimales, la BD lo soporta como FLOAT
+        from PyQt6.QtWidgets import QInputDialog
+        
+        val, ok = QInputDialog.getDouble(self, "Registrar Venta", 
+                                       f"Cantidad de {unit} a vender:", 1.0, 0.001, float(current_product['stock']), 3, step=0.001)
+            
+        if not ok: return
+        sell_qty = float(str(val).replace(',', '.'))
+
+        stock_actual = float(str(current_product['stock']).replace(',', '.'))
+        precio_actual = float(str(current_product['price']).replace(',', '.'))
+        costo_actual = float(str(current_product.get('cost_price', 0)).replace(',', '.'))
+
+        new_stock = stock_actual - sell_qty
+        sale_price = precio_actual * sell_qty
+        cost_price = costo_actual * sell_qty
+
         try:
-            # ... (Resto de pasos igual, pero pasando 'force' a check_scheduler implícitamente o explícitamente)
-
-            # ============================================================
-            # PASO 0: MANTENIMIENTO (D010 - Cleaner)
-            # ============================================================
-            self.run_step(
-                "D010_Cleaner: Mantenimiento del Sistema",
-                run_maintenance,
-                retention_days=7
+            # 1. Decrementar stock
+            self.supabase.table("products").update({"stock": float(new_stock)}).eq("id", int(current_product['id'])).execute()
+            
+            # 2. Registrar en auditoría de ventas
+            self.supabase.table("ventas_historial").insert({
+                "product_id": int(current_product['id']),
+                "product_name": product_name + f" ({sell_qty} {unit})",
+                "sale_price": float(sale_price),
+                "cost_price": float(cost_price)
+            }).execute()
+            
+            # 3. Recargar y limpiar selección
+            self.search_bar.setText("")
+            self.load_data()
+            self.table.clearSelection()
+            self.table.setCurrentItem(None)
+            
+            profit = sale_price - cost_price
+            self.statusBar().showMessage(
+                f"✅ Venta: {product_name} | Ganancia: ${profit:,.2f} | Stock restante: {new_stock}", 4000
             )
-            maintenance_data = get_maintenance_status(retention_days=7)
-            
-            # ============================================================
-            # PASO 1: EXTRACCIÓN (D004 - Scraper)
-            # ============================================================
-            scrape_result = self.run_step(
-                "D004_Scraper: Extracción de Datos",
-                mock_scrape,
-                target_url,
-                tenant_id=self.tenant_id
-            )
-            
-            if not scrape_result:
-                self.log("WARNING", "Scraping no retornó datos, continuando con análisis")
-            
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"No se pudo procesar la venta: {e}")
 
-            # ============================================================
-            # PASO 2: ANÁLISIS (D003 - Brain) + SECTORES (D014)
-            # ============================================================
-            brain = create_brain() 
-            logs_data = self.run_step("D003_Brain: Lectura de Logs", brain.read_logs)
-            error_analysis = self.run_step("D003_Brain: Análisis de Errores", brain.analyze_errors, logs_data)
-            success_patterns = self.run_step("D003_Brain: Patrones de Éxito", brain.extract_success_patterns, logs_data)
-            
-            # Cargar Configuración Sector Activo
-            import json
-            config_path = ROOT_DIR / "config_sector.json"
-            active_sector = "real_estate"
-            if config_path.exists():
-                with open(config_path, 'r', encoding='utf-8') as f:
-                    config = json.load(f)
-                    active_sector = config.get('active_sector', 'real_estate')
-
-            # SCHEDULER CHECK (D020)
-            history = load_history()
-            if not check_scheduler(active_sector, history, force=force):
-                self.log("WARNING", f"⏳ SCHEDULER: Saltando ejecución de {active_sector}. Tiempo no cumplido.")
-                print(f"⏳ SCHEDULER: {active_sector} al día. Saltando ejecución.")
-                return # Detener misión completa
-
-            # Cargar Datos y Procesar según Sector Activo
-            data_files = read_data_files()
-            
-            # PASO 2.5: Análisis de Memoria Histórica (D018)
-            data_files = self.run_step("D018_Storage: Análisis de Tendencias", process_trends, data_files, tenant_id=self.tenant_id)
-            
-            if active_sector == "fashion":
-                    try:
-                        from sectors.fashion.fashion_skill import FashionSkill
-                        f_skill = FashionSkill()
-                        for entry in data_files:
-                            if entry['data'].get('sector') == 'fashion':
-                                products = entry['data'].get('products', [])
-                                entry['data']['products'] = f_skill.process_products(products)
-                                self.log("INFO", f"Procesados {len(products)} productos de Moda")
-                    except Exception as e:
-                        self.log("WARNING", f"Skill de Moda no procesado: {e}")
-
-            if active_sector == "real_estate":
-                    try:
-                        from sectors.real_estate.real_estate_skill import RealEstateSkill
-                        re_skill = RealEstateSkill()
-                        for entry in data_files:
-                            if entry['data'].get('sector') == 'real_estate' or not entry['data'].get('sector'):
-                                props = entry['data'].get('properties', [])
-                                entry['data']['properties'] = re_skill.process_properties(props)
-                                self.log("INFO", f"Procesadas {len(props)} propiedades de Inmobiliaria")
-                    except Exception as e:
-                        self.log("WARNING", f"Skill Inmobiliaria no procesado: {e}")
-
-            if active_sector == "pharmacy":
-                    try:
-                        from sectors.pharmacy.pharmacy_skill import PharmacySkill
-                        ph_skill = PharmacySkill()
-                        for entry in data_files:
-                            if entry['data'].get('sector') == 'pharmacy':
-                                products = entry['data'].get('products', [])
-                                entry['data']['products'] = ph_skill.process_products(products)
-                                self.log("INFO", f"Procesados {len(products)} productos de Farmacia")
-                    except Exception as e:
-                        self.log("WARNING", f"Skill Farmacia no procesado: {e}")
-
-            opportunities = self.run_step("D003_Brain: Detección de Oportunidades", brain.analyze_opportunities, data_files)
-            
-            knowledge = self.run_step(
-                "D003_Brain: Consolidación", 
-                brain.consolidate_knowledge, 
-                error_analysis, 
-                success_patterns,
-                opportunities=opportunities
-            )
-            self.run_step("D003_Brain: Actualización KB", brain.update_knowledge_base, knowledge)        # ============================================================
-            # PASO 3: REPORTERÍA (D005 - Reporter)
-            # ============================================================
-            report_path = self.run_step(
-                "D005_Reporter: Generación de Reporte",
-                generate_executive_report,
-                data_files,
-                maintenance_report=maintenance_data
-            )
-            
-            # ============================================================
-            # WEB INTERFACE: Generación de Interfaz Pública (D013)
-            # ============================================================
-            self.run_step(
-                "D013_Web: Generación de Interfaz",
-                generate_web
-            )
-            
-            # ============================================================
-            # DEPLOYMENT: Sincronización con Vitrina Pública (D015)
-            # ============================================================
-            self.run_step(
-                "D015_Deploy: Sincronización Dashboard",
-                deploy_frontend
-            )
-            
-            # ── Margin Guardian (POST-Reporter) ──────────────────────────────
+    def action_ajustar_precio(self):
+        row = self.table.currentRow()
+        if row < 0:
+            QMessageBox.warning(self, "Aviso", "Seleccione un producto para ajustar.")
+            return
+        
+        from PyQt6.QtWidgets import QInputDialog
+        product_name = self.table.item(row, 0).text()
+        current_product = next(x for x in self.all_data if x['name'] == product_name)
+        
+        new_price, ok = QInputDialog.getDouble(self, "Ajuste de Precio", 
+                                                f"Nuevo precio para {product_name}:", 
+                                                float(current_product['price']), 0, 1000000, 3, step=0.001)
+        if ok:
             try:
-                from scripts.margin_guardian import MarginGuardian
-                guardian_result = MarginGuardian().run()
-                if guardian_result["status"] == "ALERT":
-                    print(f"🚨 ALERTA: {guardian_result['critical_count']} productos críticos "
-                          f"| Gap total: ${guardian_result['total_gap']:,.2f}")
-                    print("   → Ejecutar: python scripts/price_rule_executor.py --apply")
+                self.supabase.table("products").update({"price": float(new_price)}).eq("id", int(current_product['id'])).execute()
+                self.search_bar.setText("")
+                self.load_data()
+                self.table.clearSelection()
+                self.table.setCurrentItem(None)
+                self.statusBar().showMessage(f"✅ Precio actualizado: {product_name} a ${new_price:,.2f}", 3000)
             except Exception as e:
-                print(f"⚠️  Guardian no bloqueante: {e}")
-            # ─────────────────────────────────────────────────────────────────
+                QMessageBox.critical(self, "Error", f"Error al actualizar precio: {e}")
+
+    def action_cargar_stock(self):
+        row = self.table.currentRow()
+        if row < 0:
+            QMessageBox.warning(self, "Aviso", "Seleccione un producto para cargar stock.")
+            return
+
+        product_name = self.table.item(row, 0).text()
+        current_product = next(x for x in self.all_data if x['name'] == product_name)
+        
+        # Diálogo de entrada
+        dialog = QDialog(self)
+        dialog.setWindowTitle(f"Compra: {product_name}")
+        dialog.setFixedWidth(400)
+        layout = QFormLayout(dialog)
+        
+        unit_selector = QComboBox()
+        unit_selector.addItems(["Unidades", "Packs", "Litros", "Kilos", "Metros", "Horas"])
+        unit_selector.setCurrentText(current_product.get('unit_type', 'Unidades'))
+        
+        qty_input = QDoubleSpinBox()
+        qty_input.setRange(0.001, 1000000)
+        qty_input.setDecimals(3)
+        qty_input.setSingleStep(0.001)
+        qty_input.setValue(10)
+        
+        cost_input = QDoubleSpinBox()
+        cost_input.setRange(0, 1000000)
+        cost_input.setDecimals(3)
+        cost_input.setSingleStep(0.001)
+        cost_input.setPrefix("$ ")
+        cost_input.setValue(float(current_product.get('cost_price', 0)))
+        
+        qty_label = QLabel(f"Cantidad de {unit_selector.currentText()}:")
+        unit_selector.currentTextChanged.connect(lambda text: qty_label.setText(f"Cantidad de {text}:"))
+        
+        layout.addRow("Unidad de Medida:", unit_selector)
+        layout.addRow(qty_label, qty_input)
+        layout.addRow("Nuevo Precio de Costo:", cost_input)
+        
+        btn_confirm = QPushButton("Confirmar Ingreso")
+        btn_confirm.setStyleSheet(f"background-color: #805AD5; color: white; padding: 10px; font-weight: bold; border-radius: 5px;")
+        
+        def process_carga():
+            try:
+                # Casteo primitivo
+                new_qty = float(str(qty_input.value()).replace(',', '.'))
+                new_cost = float(str(cost_input.value()).replace(',', '.'))
+                new_unit = unit_selector.currentText()
+                
+                stock_previo = float(str(current_product.get('stock', 0)).replace(',', '.'))
+                total_stock = stock_previo + new_qty
+                
+                # 1. Actualizar BD ANTES del accept()
+                self.supabase.table("products").update({
+                    "stock": total_stock,
+                    "cost_price": new_cost,
+                    "unit_type": str(new_unit)
+                }).eq("id", int(current_product['id'])).execute()
+                
+                # 2. Registrar en compras_historial
+                self.supabase.table("compras_historial").insert({
+                    "product_id": int(current_product['id']),
+                    "product_name": product_name + f" ({new_unit})",
+                    "quantity": new_qty,
+                    "cost_price_at_purchase": new_cost
+                }).execute()
+                
+                # Pequeño retraso para asimilar la DB
+                time.sleep(0.5)
+                
+                # Recargar UI y mostrar mensaje, silenciado si falla el renderizado
+                try:
+                    self.search_bar.setText("")
+                    self.load_data()
+                    self.table.clearSelection()
+                    self.table.setCurrentItem(None)
+                    self.statusBar().showMessage(f"✅ Ingreso exitoso: {product_name} (+{new_qty} uds) | Nuevo Costo: ${new_cost:,.2f}", 5000)
+                except Exception:
+                    pass
+                
+                # Cerrar diálogo siempre al final
+                dialog.accept()
             
-            # ============================================================
-            # CIERRE DE MISIÓN
-            # ============================================================
-            self.results['success'] = True
-            self.results['end_time'] = datetime.now().isoformat()
-            self.results['report_path'] = report_path
+            except Exception as e:
+                # Si falló la consulta a Supabase u otra cosa no visual
+                QMessageBox.critical(self, "Error", f"No se pudo registrar la compra: {e}")
+
+        btn_confirm.clicked.connect(process_carga)
+        layout.addRow(btn_confirm)
+        
+        dialog.exec()
+
+    def action_resumen_dia(self):
+        """Genera un ticket de cierre con el resumen financiero del día."""
+        try:
+            # Fecha de hoy a las 00:00 UTC
+            hoy = datetime.now(timezone.utc).strftime("%Y-%m-%dT00:00:00+00:00")
             
-            self.log("SUCCESS", f"=== MISIÓN {self.mission_name} COMPLETADA ===")
+            # 1. Consultar ventas del día
+            ventas = self.supabase.table("ventas_historial") \
+                .select("*") \
+                .gte("sold_at", hoy) \
+                .order("sold_at", desc=True) \
+                .execute().data
             
-            print("\n" + "="*70)
-            print("✅ MISIÓN COMPLETADA EXITOSAMENTE")
-            if force:
-                print("\033[95m[!] EJECUCIÓN FORZADA COMPLETADA\033[0m")
-            print("="*70)
-            print(f"📊 Pasos ejecutados: {len(self.results['steps_completed'])}")
-            print(f"📁 Reporte generado: {report_path}")
-            print("="*70 + "\n")
+            total_facturado = sum(float(v.get('sale_price', 0)) for v in ventas)
+            ganancia_total = sum(float(v.get('profit', 0)) for v in ventas)
+            total_unidades = len(ventas)
+
+            # 2. Productos con stock bajo
+            productos_bajos = [p for p in self.all_data if p.get('stock', 0) < STOCK_MINIMO]
             
-            # ============================================================
-            # PASO 4: COMUNICACIÓN (D007 - Comms)
-            # ============================================================
-            self.run_step(
-                "D007_Comms: Notificación de Éxito",
-                send_mission_summary,
-                self.mission_name,
-                True,
-                len(self.results['steps_completed'])
-            )
+            # 3. Crear el diálogo
+            dialog = QDialog(self)
+            dialog.setWindowTitle("Resumen del Dia")
+            dialog.setFixedSize(480, 620)
+            dialog.setStyleSheet(f"background-color: white; font-family: 'Segoe UI', Arial;")
             
+            layout = QVBoxLayout(dialog)
+            layout.setContentsMargins(30, 30, 30, 30)
+            layout.setSpacing(0)
+
+            # ── HEADER ──
+            header = QLabel("TICKET DE CIERRE")
+            header.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
+            header.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            header.setStyleSheet(f"color: {COLOR_SIDEBAR}; margin-bottom: 5px;")
+            layout.addWidget(header)
+
+            fecha_label = QLabel(datetime.now().strftime("%d/%m/%Y - %H:%M hs"))
+            fecha_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            fecha_label.setStyleSheet(f"color: {COLOR_TEXT_LIGHT}; font-size: 13px; margin-bottom: 20px;")
+            layout.addWidget(fecha_label)
+
+            # ── LÍNEA DIVISORIA ──
+            def add_divider():
+                line = QLabel("- " * 30)
+                line.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                line.setStyleSheet(f"color: {COLOR_BORDER}; font-size: 10px; margin: 8px 0;")
+                layout.addWidget(line)
+            
+            add_divider()
+
+            # ── TOTALES ──
+            totales_frame = QFrame()
+            totales_layout = QVBoxLayout(totales_frame)
+            totales_layout.setSpacing(12)
+
+            def add_metric(label_text, value_text, color=COLOR_SIDEBAR):
+                row = QHBoxLayout()
+                lbl = QLabel(label_text)
+                lbl.setFont(QFont("Segoe UI", 13))
+                lbl.setStyleSheet(f"color: {COLOR_TEXT};")
+                val = QLabel(value_text)
+                val.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
+                val.setStyleSheet(f"color: {color};")
+                val.setAlignment(Qt.AlignmentFlag.AlignRight)
+                row.addWidget(lbl)
+                row.addWidget(val)
+                totales_layout.addLayout(row)
+            
+            add_metric("Unidades Vendidas:", str(total_unidades))
+            add_metric("Total Facturado:", f"$ {total_facturado:,.2f}", "#3182CE")
+            add_metric("Ganancia Real:", f"$ {ganancia_total:,.2f}", "#2F855A")
+
+            layout.addWidget(totales_frame)
+            add_divider()
+
+            # ── DETALLE DE VENTAS ──
+            if ventas:
+                det_title = QLabel("DETALLE DE VENTAS")
+                det_title.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
+                det_title.setStyleSheet(f"color: {COLOR_TEXT_LIGHT}; margin-top: 5px;")
+                layout.addWidget(det_title)
+
+                for v in ventas[:10]:  # Máximo 10 para no saturar
+                    profit_val = float(v.get('profit', 0))
+                    line = QLabel(f"  {v['product_name']}  —  $ {float(v['sale_price']):,.2f}  (+${profit_val:,.2f})")
+                    line.setStyleSheet(f"color: {COLOR_TEXT}; font-size: 12px; padding: 2px 0;")
+                    layout.addWidget(line)
+                
+                if len(ventas) > 10:
+                    more = QLabel(f"  ... y {len(ventas) - 10} ventas mas")
+                    more.setStyleSheet(f"color: {COLOR_TEXT_LIGHT}; font-size: 11px;")
+                    layout.addWidget(more)
+                
+                add_divider()
+
+            # ── ALERTAS DE REPOSICIÓN ──
+            alert_title = QLabel("ALERTA DE REPOSICION")
+            alert_title.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
+            alert_title.setStyleSheet(f"color: {COLOR_DANGER}; margin-top: 5px;")
+            layout.addWidget(alert_title)
+
+            if productos_bajos:
+                for p in productos_bajos:
+                    item_line = QLabel(f"  {p['name']}  —  Stock: {p['stock']} uds")
+                    item_line.setStyleSheet(f"color: {COLOR_DANGER}; font-size: 12px; padding: 2px 0;")
+                    layout.addWidget(item_line)
+            else:
+                ok_label = QLabel("  Todos los productos tienen stock suficiente.")
+                ok_label.setStyleSheet(f"color: {COLOR_SUCCESS}; font-size: 12px;")
+                layout.addWidget(ok_label)
+
+            add_divider()
+
+            # ── FOOTER ──
+            footer = QLabel("Soberania AI - Sistema de Gestion")
+            footer.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            footer.setStyleSheet(f"color: {COLOR_TEXT_LIGHT}; font-size: 11px; margin-top: 10px;")
+            layout.addWidget(footer)
+
+            layout.addStretch()
+            dialog.exec()
+
         except Exception as e:
-            # ============================================================
-            # MANEJO DE ERRORES - Aprendizaje del fallo
-            # ============================================================
-            self.log("ERROR", f"=== MISIÓN {self.mission_name} FALLIDA ===")
-            self.log("ERROR", f"Error crítico: {str(e)}")
-            
-            print("\n" + "="*70)
-            print("❌ MISIÓN FALLIDA")
-            print(f"   Error: {str(e)}")
-            print("="*70)
-            
-            # Intentar que el Brain aprenda del error
-            try:
-                self.log("INFO", "Ejecutando Brain para aprender del error...")
-                brain = create_brain()
-                brain.learn()
-                self.log("SUCCESS", "Brain procesó el error para aprendizaje futuro")
-            except Exception as brain_error:
-                self.log("ERROR", f"Brain también falló: {str(brain_error)}")
-            
-            # Enviar alerta crítica
-            try:
-                send_critical_alert(str(e))
-            except:
-                pass
-            
-            self.results['success'] = False
-            self.results['end_time'] = datetime.now().isoformat()
-            self.results['critical_error'] = str(e)
-        
-        finally:
-            # Guardar log de la misión
-            self.logger.save()
-        
-        return self.results
-
-
-def get_seconds(value: int, unit: str) -> int:
-    """Convierte unidad de tiempo a segundos."""
-    unit = unit.lower()
-    if 'minute' in unit:
-        return value * 60
-    elif 'hour' in unit:
-        return value * 3600
-    elif 'day' in unit:
-        return value * 86400
-    return 0
-
-def check_scheduler(sector_name: str, history_data: dict, force: bool = False) -> bool:
-    """
-    Verifica si se debe ejecutar el sector según configuración.
-    Returns: True si se debe ejecutar, False si se debe saltar.
-    Args:
-        force: Si es True, siempre retorna True (salta validación).
-    """
-    if force:
-        # Mensaje ya impreso en el orquestador o aquí si se prefiere redundancia
-        return True
-
-    scheduler_path = ROOT_DIR / "config" / "scheduler.json"
-    if not scheduler_path.exists():
-        return True
-        
-    try:
-        with open(scheduler_path, 'r', encoding='utf-8') as f:
-            config = json.load(f)
-            sector_config = config.get('sectors', {}).get(sector_name)
-            
-            if not sector_config:
-                return True
-                
-            # Buscar último timestamp del sector en historial
-            last_run = None
-            for item in history_data.values():
-                if item.get('sector') == sector_name:
-                    ts = datetime.fromisoformat(item.get('last_updated'))
-                    if last_run is None or ts > last_run:
-                        last_run = ts
-            
-            if not last_run:
-                return True
-                
-            delta = (datetime.now() - last_run).total_seconds()
-            interval = get_seconds(sector_config['value'], sector_config['unit'])
-            
-            if delta < interval:
-                return False
-            return True
-            
-    except Exception as e:
-        print(f"⚠️ Error en scheduler: {e}")
-        return True
-
-def run_full_mission(target_url: str = "https://www.google.com", force: bool = False, tenant_id: str = "default-client"):
-    """
-    Función de conveniencia para ejecutar una misión completa.
-    
-    Args:
-        target_url: URL objetivo para scraping
-        force: Forzar ejecución
-        
-    Returns:
-        Resultados de la misión
-    """
-    orchestrator = AntigravityOrchestrator("FULL_CYCLE")
-    return orchestrator.run_full_mission(target_url, force=force, tenant_id=tenant_id)
-
-
-def main():
-    """Punto de entrada principal del sistema Antigravity."""
-    parser = argparse.ArgumentParser(description="Antigravity System Orchestrator")
-    parser.add_argument("--force", action="store_true", help="Forzar ejecución ignorando scheduler (D022)")
-    parser.add_argument("--tenant", type=str, help="ID del cliente para Multi-Tenancy (D011)")
-    parser.add_argument("--url", type=str, default="https://www.google.com", help="URL objetivo para scraping")
-    args = parser.parse_args()
-
-    print("\n" + "🌌"*35)
-    print("\n        A N T I G R A V I T Y   S Y S T E M")
-    print("              Orquestador Central v1.2")
-    print("                    Nivel 7")
-    print("\n" + "🌌"*35 + "\n")
-    
-    tenant_id = args.tenant
-    if not tenant_id:
-        print("\n❌ ERROR: Se requiere --tenant para operar (Directiva D011)")
-        print("   Uso: py main.py --tenant demo-saas")
-        return 1
-
-    results = run_full_mission(target_url=args.url, force=args.force, tenant_id=tenant_id)
-    
-    # Resumen final
-    print("\n" + "="*70)
-    print("📋 RESUMEN DE MISIÓN")
-    print("="*70)
-    print(f"   Misión: {results['mission']}")
-    print(f"   Estado: {'✅ ÉXITO' if results['success'] else '❌ FALLIDA'}")
-    print(f"   Pasos completados: {len(results['steps_completed'])}")
-    
-    if results['steps_completed']:
-        for step in results['steps_completed']:
-            print(f"      ✓ {step}")
-    
-    if results['steps_failed']:
-        print(f"   Pasos fallidos: {len(results['steps_failed'])}")
-        for step_info in results['steps_failed']:
-            print(f"      ✗ {step_info['step']}: {step_info['error']}")
-    
-    print("="*70)
-    
-    # ============================================================
-    # HEARTBEAT: Validación de salud post-ejecución (D008)
-    # ============================================================
-    print("\n💓 Ejecutando Heartbeat D008...")
-    health = check_health(hours=1)
-    print(f"   Estado de salud: {health['overall_health']}")
-    
-    # ============================================================
-    # NOTIFIER: Envío a canal externo (D009)
-    # ============================================================
-    print("\n📣 Ejecutando Notifier D009...")
-    notification_result = send_external_notification()
-    print(f"   Modo: {notification_result['mode']}")
-    print(f"   Resultado: {'✅' if notification_result['success'] else '⚠️'} {notification_result['message']}")
-    
-    print("\n🔮 Sistema Antigravity - Nivel 8 Operativo\n")
-    
-    return 0 if results['success'] else 1
-
+            QMessageBox.critical(self, "Error", f"No se pudo generar el resumen: {e}")
 
 if __name__ == "__main__":
-    sys.exit(main())
+    app = QApplication(sys.argv)
+    app.setStyle("Fusion")
+    window = FarmaciaEnterprise()
+    window.show()
+    sys.exit(app.exec())

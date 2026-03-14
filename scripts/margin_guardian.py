@@ -7,12 +7,14 @@ import logging
 from datetime import datetime, timezone
 from pathlib import Path
 
+from core.config_loader import config
+
 BASE_DIR  = Path(__file__).resolve().parent.parent
 DB_PATH   = BASE_DIR / "data" / "antigravity.db"
 KB_PATH   = BASE_DIR / "KNOWLEDGE_BASE.md"
 
-TENANT_ID        = "3947b9dc-7e89-4a05-a659-46e8ccdde558"
-MARTYR_THRESHOLD = 0.29
+TENANT_ID        = config.get("tenants.demo_saas_id", "3947b9dc-7e89-4a05-a659-46e8ccdde558")
+MARTYR_THRESHOLD = config.get("thresholds.martyr_threshold", 0.29)
 CRITICAL_COUNT   = 3   # si hay mas de 3 criticos → alerta
 
 log = logging.getLogger("MarginGuardian")
@@ -65,8 +67,9 @@ class MarginGuardian:
 
     def _detect_martyrs(self, conn) -> list[dict]:
         import math
-        monthly = 0.05
-        days    = 15
+        monthly = config.get("economy.monthly_inflation", 0.05)
+        days    = config.get("thresholds.days_inventory", 15)
+        target  = config.get("economy.target_margin", 0.25)
 
         rows = conn.execute("""
             SELECT item_key, MAX(price) as last_price
@@ -87,7 +90,7 @@ class MarginGuardian:
 
             if margin < MARTYR_THRESHOLD:
                 fc        = real * (1 + monthly)
-                prot      = fc / (1 - 0.25)
+                prot      = fc / (1 - target)
                 gap       = prot - price
                 martyrs.append({
                     "sku":    sku,

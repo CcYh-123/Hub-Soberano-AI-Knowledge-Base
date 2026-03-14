@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  antigravity-api:
+    build: .
+    container_name: antigravity-core-service
+    ports:
+      - "8000:8000"
+    volumes:
+      - antigravity_data:/app/data
+    environment:
+      - DATABASE_URL=sqlite:///data/antigravity.db
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: always
+
+volumes:
+  antigravity_data:

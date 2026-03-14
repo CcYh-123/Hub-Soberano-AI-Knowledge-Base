@@ -1,16 +1,18 @@
-# 🛰️ Hybrid SaaS: Event-Driven Pricing Engine with Continuous Inflation-Adjusted Margin Protection
-**Nombre Comercial**: Antigravity Hub | **Versión**: 2.2 | **Nivel**: 9/10
+# 🛰️ ANTIGRAVITY: Multi-Tenant Margin Protection (v2026)
+**Arquitectura**: Monolito Modular ("Lasaña") | **Seguridad**: RLS Native (PostgreSQL)
 
-## 1. ESTADO ACTUAL
-- Motor matemático de capitalización continua ($e^{rt}$) operativo.
-- Margin Guardian y Price Rule Executor funcionales.
-- Dashboard V2 con simulación What-If y Profit Gap Widget activo.
+## 1. DEFINICIÓN DE ACTIVO
+Sistema de defensa financiera para farmacias que detecta erosión de capital mediante el cálculo de $e^{rt}$ y comparación de deltas de costo en tiempo real.
 
-## 2. PRIORIDADES TÁCTICAS (NUEVO ORDEN)
-- **P1: Fase 8 — Parametrización Total (INICIAR AHORA)**: Desacoplar variables fijas (5% inflación, 25% margen) a un archivo `config.yaml`.
-- **P2: Fase 10 — Deploy & DB Migration**: Preparar el salto de SQLite a PostgreSQL (Supabase) y deploy a la nube.
-- **P3: Fase 9 — Login + Onboarding**: Implementar multi-tenancy y autenticación.
-- **P4: Fase 7 — EventBus**: Migrar a arquitectura asincrónica orientada a eventos.
+## 2. ESTRUCTURA MULTI-TENANT (AISLAMIENTO TOTAL)
+Todas las tablas DEBEN contener la columna `tenant_id` para cumplir con el esquema de aislamiento lógico.
+- **Table Products**: `id, tenant_id, sku, name, current_cost, sale_price`
+- **Table Price_Events**: `id, tenant_id, product_id, old_cost, new_cost, delta, timestamp`
 
-## 3. INSTRUCCIÓN OPERATIVA
-Identificar todos los 'hardcodes' en los scripts de la carpeta `scripts/` (especialmente tasas de inflación y márgenes objetivo) y centralizarlos en un sistema de configuración dinámico.
+## 3. PRIORIDADES FASE 3 (MAÑANA)
+- **P1: Ingestor Quirúrgico**: Script `ingestor.py` usando Polars para procesar listas con `tenant_id` inyectado.
+- **P2: Parametrización por Inquilino**: Configuración `config.yaml` que asocie márgenes y tasas de inflación a cada `tenant_id`.
+- **P3: Invisible Driver**: Generar el JSON de salida para el bot de WhatsApp (Alerta de pérdida real).
+
+## 4. REGLA DE ORO
+"Main es sagrado". No se sube código que no pase la validación de aislamiento de datos.

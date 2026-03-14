@@ -6,6 +6,7 @@ from pathlib import Path
 from datetime import datetime
 from dataclasses import dataclass, field
 from typing import Dict, Any, List
+from core.config_loader import config
 
 DB_PATH = Path("data/antigravity.db")
 
@@ -15,8 +16,8 @@ class ProductSnapshot:
     cost_price: float
     current_price: float
     days_in_inventory: int
-    monthly_inflation_rate: float = 0.05  # 5% Argentina default
-    target_margin: float = 0.25
+    monthly_inflation_rate: float = field(default_factory=lambda: config.get("economy.monthly_inflation", 0.05))
+    target_margin: float = field(default_factory=lambda: config.get("economy.target_margin", 0.25))
     competition_ceiling: float = None
 
 class WealthModel:

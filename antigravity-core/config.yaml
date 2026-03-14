@@ -1,0 +1,9 @@
+economy:
+  daily_inflation: 0.0016  # ~5% mensual proyectado diariamente (r)
+  alert_threshold_leak: 20.0 # Alerta si la brecha supera los $20
+
+tenants:
+  tenant_test_001:
+    tasa_inflacion_diaria: 0.002  # Un poco más alta para este tenant de prueba
+  demo_saas_id:
+    tasa_inflacion_diaria: 0.0016

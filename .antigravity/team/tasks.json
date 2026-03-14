@@ -1,0 +1,43 @@
+{
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Estructuracion del Equipo Juanka",
+      "status": "PENDING",
+      "plan_approved": false,
+      "assigned_to": "Arquitecto",
+      "dependencies": []
+    },
+    {
+      "id": 2,
+      "title": "Implementacion de Agentes",
+      "status": "PENDING",
+      "plan_approved": false,
+      "assigned_to": "Especialista",
+      "dependencies": []
+    },
+    {
+      "id": 3,
+      "title": "Configuracion de Seguridad",
+      "status": "PENDING",
+      "plan_approved": false,
+      "assigned_to": "Revisor",
+      "dependencies": []
+    },
+    {
+      "id": 4,
+      "title": "Auditoria de Sistema",
+      "status": "PENDING",
+      "plan_approved": false,
+      "assigned_to": "Revisor",
+      "dependencies": []
+    }
+  ],
+  "members": [
+    "Juanka",
+    "Arquitecto",
+    "Especialista",
+    "Investigador",
+    "Revisor"
+  ]
+}
