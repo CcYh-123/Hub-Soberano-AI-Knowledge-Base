@@ -53,10 +53,8 @@ export const initLocalDb = async (tenantId: string = 'tenant_agro_test'): Promis
      ON logs_bloqueo (tenant_id);`
   );
 
-  // ─── PRECIO REAL DE MERCADO (cargado manualmente 2026-03-20) ─────────────
-  // Precio de Mercado:  $135  (precio real del Glifosato)
-  // Costo del Tenant:   $105  (costo de compra de tenant_agro_test)
-  // Margen Real:        22.2% ((135 - 105) / 135 * 100)
+  // ─── SEMILLA DE MERCADO REAL (CALIBRACIÓN FASE 3) ──────────────────────
+  // Glifosato: $135 (Venta) / $105 (Costo) => Margen: 22.22%
   // ─────────────────────────────────────────────────────────────────────────
 
   // INSERT para instalaciones limpias (primera vez)
