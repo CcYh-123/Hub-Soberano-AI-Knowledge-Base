@@ -20,6 +20,10 @@ import { useTenant } from '../context/TenantContext';
 import { useAuth } from '../hooks/useAuth';
 import { initLocalDb, listarProductosAgro } from '../lib/localDb';
 
+// ── Fase 5 - Fuel: URL del Puente (localtunnel) ─────────────────────────────
+// Para actualizar el túnel: cambiar solo esta constante.
+const BRIDGE_URL = 'https://seven-humans-hang.loca.lt';
+
 export const DashboardScreen = () => {
   const { tenantId } = useTenant();
   const { profile } = useAuth(); // Var viva de autenticación
@@ -45,36 +49,76 @@ export const DashboardScreen = () => {
     setRefreshTrigger(prev => prev + 1);
   }, []);
 
+  // Semáforo: >20% verde, >=15% amarillo, <15% rojo
+  const getSemaforo = (margen: number): string => {
+    if (margen >= 20) return '🟢';
+    if (margen >= 15) return '🟡';
+    return '🔴';
+  };
+
+  const renderLineas = (productos: { nombre: string; precio_venta: number; costo_reposicion: number }[]) =>
+    productos.map(p => {
+      const ganancia = p.precio_venta - p.costo_reposicion;
+      const margen = (ganancia / p.precio_venta) * 100;
+      console.log(`${getSemaforo(margen)} ${p.nombre} — Margen: ${margen.toFixed(2)}% | Ganancia: $${ganancia.toFixed(2)}/u`);
+      return `${getSemaforo(margen)} ${p.nombre}: ${margen.toFixed(2)}% ($${ganancia.toFixed(2)}/u)`;
+    });
+
   const handleCheckEngine = async () => {
-    // BYPASS: Usamos el tenant directo en el botón para que ignore Auth si no hay.
     const bypassTenant = tenantId || 'tenant_agro_test';
-    
+
+    // ── BRIDGE FIRST: fetch al túnel localtunnel ─────────────────────────
+    try {
+      console.log(`🌐 Conectando al puente: ${BRIDGE_URL}/get-martires`);
+      const resp = await fetch(`${BRIDGE_URL}/get-martires`, {
+        method: 'GET',
+        headers: {
+          'bypass-tunnel-reminder': 'true',  // Header requerido por localtunnel
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!resp.ok) throw new Error(`HTTP ${resp.status} — ${resp.statusText}`);
+
+      const json = await resp.json();
+      const productos = json.productos ?? [];
+
+      if (productos.length === 0) throw new Error('El puente devolvió lista vacía');
+
+      const lineas = renderLineas(productos);
+      Alert.alert(
+        '🌐 Motor Mártir — Puente Activo',
+        `[Bridge: ${BRIDGE_URL}]\n\n` + lineas.join('\n')
+      );
+      return; // Éxito — no necesita fallback
+
+    } catch (bridgeError: any) {
+      const bridgeMsg = bridgeError?.message || 'Error desconocido en el puente';
+      console.warn(`⚠️ Bridge falló (${bridgeMsg}), activando fallback SQLite...`);
+    }
+
+    // ── FALLBACK: SQLite local ───────────────────────────────────────────
     try {
       const productos = await listarProductosAgro(bypassTenant);
-      
-      const martir = productos.find(p => p.nombre.includes('Glifosato') || p.nombre.includes('Mártir'));
-      if (martir) {
-        // Margen Real = ((Precio Mercado - Costo Tenant) / Precio Mercado) * 100
-        const margen = ((martir.precio_venta - martir.costo_reposicion) / martir.precio_venta) * 100;
-        const ganancia = martir.precio_venta - martir.costo_reposicion;
-        console.log(`✅ Glifosato — Precio Mercado: $${martir.precio_venta} | Costo: $${martir.costo_reposicion} | Margen Real: ${margen.toFixed(2)}%`);
-        Alert.alert(
-          '🌱 Motor Mártir — PRECIO REAL',
-          `Precio Mercado: $${martir.precio_venta.toFixed(2)}\n` +
-          `Costo Tenant:      $${martir.costo_reposicion.toFixed(2)}\n` +
-          `─────────────────────\n` +
-          `Ganancia/u:        $${ganancia.toFixed(2)}\n` +
-          `📈 Margen Real:  ${margen.toFixed(2)}%`
-        );
-      } else {
-        console.log('No se encontró el Mártir en la SQLite local con tenant:', bypassTenant);
-        Alert.alert('Fallo DB', 'No se encontró el Glifosato Mártir.');
+
+      if (!productos || productos.length === 0) {
+        Alert.alert('Fallo Total', 'Sin puente y sin datos locales.');
+        return;
       }
-    } catch (error) {
-      console.error('❌ Error de conexión con SQLite', error);
-      Alert.alert('Fallo DB', 'Explotó la conexión local con SQLite.');
+
+      const lineas = renderLineas(productos);
+      Alert.alert(
+        '📦 Motor Mártir — Modo Offline',
+        `[Fuente: SQLite Local]\n\n` + lineas.join('\n')
+      );
+
+    } catch (localError: any) {
+      const msg = localError?.message || JSON.stringify(localError) || 'Error desconocido';
+      console.error('❌ Error Motor Mártir (SQLite):', msg);
+      Alert.alert('🔴 Error de Puente', `Bridge: Falló\nSQLite: ${msg}`);
     }
   };
+
 
   return (
     <View style={styles.container}>
@@ -94,7 +138,11 @@ export const DashboardScreen = () => {
         }
       >
         <Text style={styles.mainHeader}>North Star Profitability</Text>
-        <Text style={styles.subHeader}>Sincronizado Localmente (Offline)</Text>
+        
+        <View style={styles.offlineStatusContainer}>
+          <View style={styles.statusDot} />
+          <Text style={styles.offlineStatusText}>Sincronizado Localmente (Soberanía Offline)</Text>
+        </View>
 
         <TouchableOpacity style={styles.actionButton} onPress={handleCheckEngine}>
           <Text style={styles.actionButtonText}>EJECUTAR MOTOR MÁRTIR</Text>
@@ -151,11 +199,34 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     letterSpacing: -0.5,
   },
-  subHeader: {
-    fontSize: 14,
+  offlineStatusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(56, 189, 248, 0.1)',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.3)',
+    marginBottom: 20,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#38bdf8',
+    marginRight: 8,
+    shadowColor: '#38bdf8',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 4,
+  },
+  offlineStatusText: {
+    fontSize: 11,
     color: '#38bdf8',
-    fontWeight: '600',
-    marginBottom: 24,
+    fontWeight: '800',
+    letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
   widgetsContainer: {

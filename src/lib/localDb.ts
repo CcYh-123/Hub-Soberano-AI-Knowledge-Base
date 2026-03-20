@@ -54,10 +54,13 @@ export const initLocalDb = async (tenantId: string = 'tenant_agro_test'): Promis
   );
 
   // ─── SEMILLA DE MERCADO REAL (CALIBRACIÓN FASE 3) ──────────────────────
-  // Glifosato: $135 (Venta) / $105 (Costo) => Margen: 22.22%
+  // Glifosato Mártir:    $135 (Venta) / $105 (Costo) => Margen: 22.22%
+  //                      Ganancia/u: $30
+  // Fertilizante Urea:   $580 (Venta) / $450 (Costo) => Margen: ~22.41%
+  //                      Ganancia/u: $130
   // ─────────────────────────────────────────────────────────────────────────
 
-  // INSERT para instalaciones limpias (primera vez)
+  // ── Mártir 1: Glifosato ─────────────────────────────────────────────────
   await db.runAsync(
     `INSERT INTO productos_agro_v2 (nombre, costo_reposicion, precio_venta, tenant_id)
      SELECT ?, ?, ?, ?
@@ -68,12 +71,30 @@ export const initLocalDb = async (tenantId: string = 'tenant_agro_test'): Promis
     ['Glifosato Mártir', 105, 135, 'tenant_agro_test', 'Glifosato Mártir', 'tenant_agro_test']
   );
 
-  // UPDATE para dispositivos con la simulación anterior (100/105)
-  // Esto garantiza que el precio real se aplique aunque la app ya esté instalada.
+  // UPDATE garantizado para dispositivos con seed anterior
   await db.runAsync(
     `UPDATE productos_agro_v2
      SET costo_reposicion = 105, precio_venta = 135
      WHERE nombre = 'Glifosato Mártir'
+       AND tenant_id = 'tenant_agro_test';`
+  );
+
+  // ── Mártir 2: Fertilizante Urea ─────────────────────────────────────────
+  await db.runAsync(
+    `INSERT INTO productos_agro_v2 (nombre, costo_reposicion, precio_venta, tenant_id)
+     SELECT ?, ?, ?, ?
+     WHERE NOT EXISTS (
+       SELECT 1 FROM productos_agro_v2
+       WHERE nombre = ? AND tenant_id = ?
+     );`,
+    ['Fertilizante Urea', 450, 580, 'tenant_agro_test', 'Fertilizante Urea', 'tenant_agro_test']
+  );
+
+  // UPDATE garantizado para dispositivos que ya tengan el registro con valores distintos
+  await db.runAsync(
+    `UPDATE productos_agro_v2
+     SET costo_reposicion = 450, precio_venta = 580
+     WHERE nombre = 'Fertilizante Urea'
        AND tenant_id = 'tenant_agro_test';`
   );
 };
