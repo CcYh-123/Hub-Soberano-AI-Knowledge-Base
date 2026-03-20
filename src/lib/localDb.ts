@@ -1,10 +1,6 @@
-// expo-sqlite tipos en runtime; firma simplificada para evitar ruido de TS en entorno de scripts
-// @ts-ignore
 import * as SQLite from 'expo-sqlite';
 
 const DB_NAME = 'database.db';
-
-
 
 export type ProductoAgroRow = {
   id: number;
@@ -14,125 +10,110 @@ export type ProductoAgroRow = {
   tenant_id: string;
 };
 
-let dbInstance: any | null = null;
+// Singleton db instance using new synchronous API
+let dbInstance: SQLite.SQLiteDatabase | null = null;
 
 export const getDb = () => {
   if (!dbInstance) {
-    // @ts-ignore API provista por Expo en runtime
-    dbInstance = (SQLite as any).openDatabase(DB_NAME);
+    dbInstance = SQLite.openDatabaseSync(DB_NAME);
   }
   return dbInstance;
 };
 
-export const initLocalDb = (tenantId: string = 'demo-local'): Promise<void> => {
+export const initLocalDb = async (tenantId: string = 'tenant_agro_test'): Promise<void> => {
   const db = getDb();
-  return new Promise((resolve, reject) => {
-    db.transaction(
-      tx => {
-        tx.executeSql(
-          `CREATE TABLE IF NOT EXISTS productos_agro (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nombre TEXT NOT NULL,
-            costo_reposicion REAL NOT NULL DEFAULT 0,
-            precio_venta REAL NOT NULL DEFAULT 0,
-            tenant_id TEXT NOT NULL
-          );`,
-        );
-        tx.executeSql(
-          `CREATE INDEX IF NOT EXISTS idx_productos_agro_tenant
-           ON productos_agro (tenant_id);`,
-        );
+  
+  await db.execAsync(
+    `CREATE TABLE IF NOT EXISTS productos_agro_v2 (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nombre TEXT NOT NULL,
+      costo_reposicion REAL NOT NULL DEFAULT 0,
+      precio_venta REAL NOT NULL DEFAULT 0,
+      tenant_id TEXT NOT NULL
+    );`
+  );
+  
+  await db.execAsync(
+    `CREATE INDEX IF NOT EXISTS idx_productos_agro_tenant_v2
+     ON productos_agro_v2 (tenant_id);`
+  );
 
-        tx.executeSql(
-          `CREATE TABLE IF NOT EXISTS logs_bloqueo (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            producto TEXT NOT NULL,
-            margen REAL NOT NULL,
-            tenant_id TEXT NOT NULL,
-            timestamp TEXT NOT NULL
-          );`,
-        );
-        tx.executeSql(
-          `CREATE INDEX IF NOT EXISTS idx_logs_bloqueo_tenant
-           ON logs_bloqueo (tenant_id);`,
-        );
+  await db.execAsync(
+    `CREATE TABLE IF NOT EXISTS logs_bloqueo (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      producto TEXT NOT NULL,
+      margen REAL NOT NULL,
+      tenant_id TEXT NOT NULL,
+      timestamp TEXT NOT NULL
+    );`
+  );
+  
+  await db.execAsync(
+    `CREATE INDEX IF NOT EXISTS idx_logs_bloqueo_tenant
+     ON logs_bloqueo (tenant_id);`
+  );
 
-        // Seed de producto de prueba para sincronizar con la DB de Python
-        tx.executeSql(
-          `INSERT INTO productos_agro (nombre, costo_reposicion, precio_venta, tenant_id)
-           SELECT ?, ?, ?, ?
-           WHERE NOT EXISTS (
-             SELECT 1 FROM productos_agro
-             WHERE nombre = ? AND tenant_id = ?
-           );`,
-          ['Glifosato Mártir', 100, 105, tenantId, 'Glifosato Mártir', tenantId],
-        );
-      },
-      error => reject(error),
-      () => resolve(),
-    );
-  });
+  // ─── PRECIO REAL DE MERCADO (cargado manualmente 2026-03-20) ─────────────
+  // Precio de Mercado:  $135  (precio real del Glifosato)
+  // Costo del Tenant:   $105  (costo de compra de tenant_agro_test)
+  // Margen Real:        22.2% ((135 - 105) / 135 * 100)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // INSERT para instalaciones limpias (primera vez)
+  await db.runAsync(
+    `INSERT INTO productos_agro_v2 (nombre, costo_reposicion, precio_venta, tenant_id)
+     SELECT ?, ?, ?, ?
+     WHERE NOT EXISTS (
+       SELECT 1 FROM productos_agro_v2
+       WHERE nombre = ? AND tenant_id = ?
+     );`,
+    ['Glifosato Mártir', 105, 135, 'tenant_agro_test', 'Glifosato Mártir', 'tenant_agro_test']
+  );
+
+  // UPDATE para dispositivos con la simulación anterior (100/105)
+  // Esto garantiza que el precio real se aplique aunque la app ya esté instalada.
+  await db.runAsync(
+    `UPDATE productos_agro_v2
+     SET costo_reposicion = 105, precio_venta = 135
+     WHERE nombre = 'Glifosato Mártir'
+       AND tenant_id = 'tenant_agro_test';`
+  );
 };
 
-export const listarProductosAgro = (tenantId: string): Promise<ProductoAgroRow[]> => {
+export const listarProductosAgro = async (tenantId: string): Promise<ProductoAgroRow[]> => {
   const db = getDb();
-  return new Promise((resolve, reject) => {
-    db.transaction(
-      tx => {
-        tx.executeSql(
-          'SELECT id, nombre, costo_reposicion, precio_venta, tenant_id FROM productos_agro WHERE tenant_id = ?',
-          [tenantId],
-          (_txObj, result) => {
-            resolve((result.rows._array || []) as ProductoAgroRow[]);
-          },
-        );
-      },
-      error => reject(error),
-    );
-  });
+  // getAllAsync fetches rows directly mapped to the type
+  const result = await db.getAllAsync<ProductoAgroRow>(
+    'SELECT id, nombre, costo_reposicion, precio_venta, tenant_id FROM productos_agro_v2 WHERE tenant_id = ?',
+    [tenantId]
+  );
+  return result || [];
 };
 
-export const upsertProductoAgro = (
+export const upsertProductoAgro = async (
   nombre: string,
   costo_reposicion: number,
   precio_venta: number,
   tenantId: string,
 ): Promise<void> => {
   const db = getDb();
-  return new Promise((resolve, reject) => {
-    db.transaction(
-      tx => {
-        tx.executeSql(
-          `INSERT INTO productos_agro (nombre, costo_reposicion, precio_venta, tenant_id)
-           VALUES (?, ?, ?, ?)`,
-          [nombre, costo_reposicion, precio_venta, tenantId],
-        );
-      },
-      error => reject(error),
-      () => resolve(),
-    );
-  });
+  await db.runAsync(
+    `INSERT INTO productos_agro_v2 (nombre, costo_reposicion, precio_venta, tenant_id)
+     VALUES (?, ?, ?, ?)`,
+    [nombre, costo_reposicion, precio_venta, tenantId]
+  );
 };
 
-export const insertBloqueoLog = (
+export const insertBloqueoLog = async (
   producto: string,
   margen: number,
   tenantId: string,
 ): Promise<void> => {
   const db = getDb();
   const ts = new Date().toISOString();
-  return new Promise((resolve, reject) => {
-    db.transaction(
-      tx => {
-        tx.executeSql(
-          `INSERT INTO logs_bloqueo (producto, margen, tenant_id, timestamp)
-           VALUES (?, ?, ?, ?)`,
-          [producto, margen, tenantId, ts],
-        );
-      },
-      error => reject(error),
-      () => resolve(),
-    );
-  });
+  await db.runAsync(
+    `INSERT INTO logs_bloqueo (producto, margen, tenant_id, timestamp)
+     VALUES (?, ?, ?, ?)`,
+    [producto, margen, tenantId, ts]
+  );
 };
-
