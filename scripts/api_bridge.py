@@ -105,8 +105,10 @@ async def get_data():
         return {"error": str(e)}
 
 
-# ── ARRANQUE ─────────────────────────────────────────────────────────────────
+# ── ARRANQUE DINÁMICO (Cloud Run Compatible) ────────────────────────────────
 if __name__ == "__main__":
-    print("Antigravity Bridge arrancando en http://0.0.0.0:8000")
-    print("Endpoint Motor Martir: http://<TU_IP_LOCAL>:8000/get-martires")
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=False)
+    # Google Cloud Run inyecta la variable "PORT", localmente usamos 8000 si preferís
+    port = int(os.environ.get('PORT', 8080))
+    print(f"Antigravity Bridge arrancando en http://0.0.0.0:{port}")
+    print(f"Para el Handshake local usá: http://<TU_IP_LOCAL>:{port}/get-martires")
+    uvicorn.run(app, host="0.0.0.0", port=port, reload=False)
