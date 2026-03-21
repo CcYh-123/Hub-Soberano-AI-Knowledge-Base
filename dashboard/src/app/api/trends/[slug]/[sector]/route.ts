@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+export const dynamic = "force-dynamic";
 
 const TENANT_MAP: Record<string, string> = {
     "demo-saas": "3947b9dc-7e89-4a05-a659-46e8ccdde558",
@@ -7,10 +8,10 @@ const TENANT_MAP: Record<string, string> = {
 
 export async function GET(
     req: Request,
-    { params }: { params: { slug: string; sector: string } }
+    { params }: { params: Promise<{ slug: string; sector: string }> }
 ) {
     try {
-        const { slug, sector } = params;
+        const { slug, sector } = await params;
         const tenantId = TENANT_MAP[slug] ?? slug;
 
         // Leer DB via API interna de Python — fallback a datos simulados
