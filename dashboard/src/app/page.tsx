@@ -1,5 +1,7 @@
 "use client";
 
+
+
 import React, { useEffect, useState } from "react";
 import {
   Card,
@@ -71,6 +73,22 @@ interface Trend {
   item: string;
 }
 
+interface MartyrRow {
+  sku: string;
+  cost_supa: number;
+  price: number;
+  margin: number;
+  gap: number;
+  suggested_price: number;
+  level: string;
+}
+
+interface MarginReport {
+  criticalCount: number;
+  martyrs: MartyrRow[];
+  latestFile?: string | null;
+}
+
 export default function DashboardPage() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [health, setHealth] = useState<Health | null>(null);
@@ -79,10 +97,12 @@ export default function DashboardPage() {
   const [orgId, setOrgId] = useState<string>("demo-saas");
   const [activeSector, setActiveSector] = useState("pharmacy");
   const [loading, setLoading] = useState(true);
+  const [marginReport, setMarginReport] = useState<MarginReport | null>(null);
   const supabase = createClient();
 
   useEffect(() => {
-    async function fetchData() {
+    async function fetchData(isBackground = false) {
+      if (!isBackground) setLoading(true);
       try {
         let currentOrgId = "demo-saas";
         let currentSector = "fashion";
@@ -104,45 +124,139 @@ export default function DashboardPage() {
           }
         }
 
-        const [alertsRes, healthRes, trendsRes, tenantRes] = await Promise.all([
+        const [alertsRes, healthRes, trendsRes, tenantRes, reportRes] = await Promise.all([
           fetch(`/api/alerts`),
           fetch(`/api/health`).catch(() => new Response(JSON.stringify({ overall_health: "LOCAL (PYTHON OFFLINE)", last_sync: new Date().toISOString() }))),
           fetch(`/api/trends/${currentOrgId}/${currentSector}`).catch(() => new Response(JSON.stringify([]))),
-          fetch(`/api/tenant/${currentOrgId}`).catch(() => new Response(JSON.stringify({ id: currentOrgId, name: "Enterprise Hub", slug: currentOrgId, tier: "pro" })))
+          fetch(`/api/tenant/${currentOrgId}`).catch(() => new Response(JSON.stringify({ id: currentOrgId, name: "Enterprise Hub", slug: currentOrgId, tier: "pro" }))),
+          fetch(`/api/latest-report`).catch(() => new Response(JSON.stringify({ criticalCount: 0, martyrs: [] })))
         ]);
 
         const alertsData = await alertsRes.json();
         const healthData = await healthRes.json();
         const trendsData = await trendsRes.json();
         const tenantData = await tenantRes.json();
+        const reportData = await reportRes.json();
 
         // The new API might return just an array or { alerts: [] }
         setAlerts(Array.isArray(alertsData) ? alertsData : (alertsData.alerts || []));
         setHealth(healthData);
         setTrends(trendsData || []);
         setTenant(tenantData);
+        setMarginReport({ criticalCount: reportData.criticalCount ?? 0, martyrs: reportData.martyrs ?? [], latestFile: reportData.latestFile });
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
       } finally {
-        setLoading(false);
+        if (!isBackground) setLoading(false);
       }
     }
+
     fetchData();
+    const intervalId = setInterval(() => fetchData(true), 30_000);
+    return () => clearInterval(intervalId);
   }, [supabase]);
 
   if (loading) {
     return (
       <div className="h-screen bg-slate-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600"></div>
+        
       </div>
     );
   }
 
+  const totalGapFromReport = marginReport?.martyrs?.reduce((sum, m) => sum + (Number(m.gap) || 0), 0) ?? 0;
+  const hasTestAgro = marginReport?.martyrs?.some((m) => String(m.sku).toUpperCase().includes("PRODUCTO_TEST_AGRO")) ?? false;
+  const showGapCard = (marginReport?.martyrs?.length ?? 0) > 0;
+
   return (
     <AuthGate>
-      <ProfitGapWidget />
       <main className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans">
         <div className="max-w-7xl mx-auto space-y-8">
+          {/* PRIMERO: Márgenes en Riesgo (widget principal, datos de /api/latest-report) */}
+          <section className="space-y-4">
+            <h2 className="text-lg font-bold text-slate-800 tracking-tight">Márgenes en Riesgo</h2>
+            {showGapCard && (
+              <div className={`rounded-2xl border-2 p-6 md:p-8 text-center ${marginReport!.criticalCount > 0 || hasTestAgro ? "bg-red-500/15 border-red-500 text-red-900 shadow-lg shadow-red-500/10" : "bg-amber-500/10 border-amber-500 text-amber-900"}`}>
+                <p className="text-sm font-semibold uppercase tracking-wider opacity-90 mb-1">GAP de ganancia</p>
+                <p className="text-4xl md:text-6xl font-black tabular-nums">
+                  ${totalGapFromReport.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs mt-2 opacity-80">Dinero a recuperar subiendo precios sugeridos</p>
+              </div>
+            )}
+            {marginReport && (marginReport.criticalCount > 0 || marginReport.martyrs.length > 0) ? (
+              <Card className={`rounded-2xl shadow-sm overflow-hidden border-2 ${marginReport.criticalCount > 0 ? "border-red-200 bg-red-50/50" : "border-amber-200 bg-amber-50/30"}`}>
+                <CardHeader className="pb-3 border-b border-slate-100">
+                  <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-2 tracking-tight">
+                    {marginReport.criticalCount > 0 ? (
+                      <>
+                        <span className="text-red-600">🚨 ¡ATENCIÓN!</span>
+                        <span>Se detectaron {marginReport.criticalCount} productos con margen crítico</span>
+                      </>
+                    ) : (
+                      <>
+                        <ShieldCheck className="h-4.5 w-4.5 text-amber-600" />
+                        <span>Reporte de margen (Sector Agro)</span>
+                      </>
+                    )}
+                  </CardTitle>
+                  <CardDescription className="text-slate-500 text-xs mt-1">
+                    Último reporte: {marginReport.latestFile || "—"}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                  {marginReport.martyrs.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-slate-200 bg-slate-50/80">
+                            <th className="text-left py-3 px-4 font-semibold text-slate-700">SKU</th>
+                            <th className="text-right py-3 px-4 font-semibold text-slate-700">Costo (Supabase)</th>
+                            <th className="text-right py-3 px-4 font-semibold text-slate-700">Venta (SQLite)</th>
+                            <th className="text-right py-3 px-4 font-semibold text-slate-700">Margen %</th>
+                            <th className="text-right py-3 px-4 font-semibold text-slate-700">Gap $</th>
+                            <th className="text-right py-3 px-4 font-semibold text-slate-700">Precio sugerido</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {marginReport.martyrs.map((m, idx) => {
+                            const margin = Number(m.margin) || 0;
+                            const isRed = margin < 15;
+                            const isYellow = margin >= 15 && margin < 25;
+                            const rowBg = isRed ? "bg-red-50" : isYellow ? "bg-amber-50/70" : "bg-emerald-50/70";
+                            const borderLeft = isRed ? "border-l-4 border-l-red-500" : isYellow ? "border-l-4 border-l-amber-500" : "border-l-4 border-l-emerald-500";
+                            return (
+                              <tr key={idx} className={`border-b border-slate-100 ${rowBg} ${borderLeft}`}>
+                                <td className="py-2.5 px-4 font-medium text-slate-800">{m.sku}</td>
+                                <td className="py-2.5 px-4 text-right text-slate-700">{typeof m.cost_supa === "number" ? `$${m.cost_supa.toLocaleString("es-AR", { minimumFractionDigits: 2 })}` : "—"}</td>
+                                <td className="py-2.5 px-4 text-right text-slate-700">${Number(m.price).toLocaleString("es-AR", { minimumFractionDigits: 2 })}</td>
+                                <td className={`py-2.5 px-4 text-right font-semibold ${isRed ? "text-red-700" : isYellow ? "text-amber-700" : "text-emerald-700"}`}>{margin.toFixed(2)}%</td>
+                                <td className="py-2.5 px-4 text-right text-slate-700">${Number(m.gap).toLocaleString("es-AR", { minimumFractionDigits: 2 })}</td>
+                                <td className="py-2.5 px-4 text-right text-slate-700">{typeof m.suggested_price === "number" ? `$${m.suggested_price.toLocaleString("es-AR", { minimumFractionDigits: 2 })}` : "—"}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="py-4 px-4 text-slate-500 text-sm">Sin filas en el último reporte.</p>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="rounded-2xl border border-slate-200 bg-white">
+                <CardContent className="py-8 text-center text-slate-500 text-sm">
+                  Sin reporte de margen reciente. Ejecutá el Guardián para generar datos.
+                </CardContent>
+              </Card>
+            )}
+          </section>
+
+          {/* Profit Gap Radar (más abajo: recuperación por producto) */}
+          <ProfitGapWidget />
+
           {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
             <div className="space-y-1">

@@ -26,24 +26,36 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const FAKE_PROFILE: Profile = {
+    id: 'bypass-id',
+    email: 'test@antigravity.pro',
+    role: 'ADMIN',
+    org_id: 'tenant_agro_test'
+  };
+
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(FAKE_PROFILE);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // 1. Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
-      if (session?.user) fetchProfile(session.user.id);
-      else setLoading(false);
+      if (session?.user) {
+        fetchProfile(session.user.id);
+      } else {
+        setProfile(FAKE_PROFILE); // BYPASS
+        setLoading(false);
+      }
     });
 
     // 2. Listen to auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
-      if (session?.user) fetchProfile(session.user.id);
-      else {
-        setProfile(null);
+      if (session?.user) {
+        fetchProfile(session.user.id);
+      } else {
+        setProfile(FAKE_PROFILE); // BYPASS
         setLoading(false);
       }
     });

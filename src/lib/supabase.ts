@@ -1,11 +1,12 @@
-import { createClient, PostgrestFilterBuilder } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
 
 
-const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || '';
+
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL as string;
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY as string;
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
@@ -17,12 +18,14 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 });
 
 // Helper para asegurar que TODAS las consultas de negocio pasen por tenant_id
-export const fromTenant = <T = any>(
+export const fromTenant = (
   table: string,
   tenantId: string | null | undefined,
-): PostgrestFilterBuilder<T> => {
-  const query = supabase.from<T>(table);
-  return tenantId ? query.eq('tenant_id', tenantId) : query;
+) => {
+  const query = supabase.from(table);
+  // En runtime, el builder soporta .eq; el cast evita ruido de tipos con versiones distintas de supabase-js.
+  const q = query as any;
+  return tenantId ? q.eq('tenant_id', tenantId) : q;
 };
 
 // Session Validation & Offline Handling Interceptor

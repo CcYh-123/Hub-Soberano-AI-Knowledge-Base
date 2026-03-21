@@ -197,19 +197,19 @@ class MarginGuardian:
         days    = config.get("thresholds.days_inventory", 15)
         target  = config.get("economy.target_margin", 0.25)
 
-        # Camino preferido: tabla productos_agro local (modo offline-first)
+        # Camino preferido: tabla productos_agro_v2 local (modo offline-first)
         try:
             has_productos_agro = bool(
                 conn.execute(
-                    "select name from sqlite_master where type='table' and name='productos_agro'"
+                    "select name from sqlite_master where type='table' and name='productos_agro_v2'"
                 ).fetchone()
             )
         except Exception:
             has_productos_agro = False
 
         if has_productos_agro:
-            print("[MarginGuardian] Usando tabla local 'productos_agro' como fuente principal de costos y precios.")
-            return self._detect_martyrs_from_productos_agro(conn, monthly, days)
+            print("[MarginGuardian] Usando tabla local 'productos_agro_v2' como fuente principal de costos y precios.")
+            return self._detect_martyrs_from_productos_agro_v2(conn, monthly, days)
 
         print(f"[MarginGuardian] Cargando costos desde Supabase para tenant {self.tenant_id} ...")
         costs_by_sku = self._load_costs_from_supabase()
@@ -310,9 +310,9 @@ class MarginGuardian:
         print(f"[MarginGuardian] Mártires detectados para tenant {self.tenant_id}: {len(martyrs)}")
         return martyrs
 
-    def _detect_martyrs_from_productos_agro(self, conn, monthly: float, days: int) -> list[dict]:
+    def _detect_martyrs_from_productos_agro_v2(self, conn, monthly: float, days: int) -> list[dict]:
         """
-        Lee directamente de productos_agro (id, nombre, costo_reposicion, precio_venta, tenant_id)
+        Lee directamente de productos_agro_v2 (id, nombre, costo_reposicion, precio_venta, tenant_id)
         y marca como 'MÁRTIR' todo producto con margen bruto < 15%.
         """
         import math
@@ -320,13 +320,13 @@ class MarginGuardian:
         rows = conn.execute(
             """
             SELECT nombre, costo_reposicion, precio_venta
-            FROM productos_agro
+            FROM productos_agro_v2
             WHERE tenant_id = ?
               AND precio_venta > 0
             """,
             (self.tenant_id,),
         ).fetchall()
-        print(f"[MarginGuardian] Filas leídas desde productos_agro para tenant {self.tenant_id}: {len(rows)}")
+        print(f"[MarginGuardian] Filas leídas desde productos_agro_v2 para tenant {self.tenant_id}: {len(rows)}")
 
         martyrs: list[dict] = []
         for nombre, costo_reposicion, precio_venta in rows:

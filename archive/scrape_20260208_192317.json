@@ -1,0 +1,11 @@
+{
+    "status": "success",
+    "url": "https://www.google.com",
+    "content": "Sample Search Data",
+    "timestamp": "2026-02-08T19:23:17.415990",
+    "scraper_version": "1.0.0",
+    "context": {
+        "project": "Antigravity",
+        "purpose": "Testing D004"
+    }
+}
