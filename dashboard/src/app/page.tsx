@@ -83,6 +83,7 @@ interface MartyrRow {
   gap: number;
   suggested_price: number;
   level: string;
+  applied?: boolean;
 }
 
 interface MarginReport {
@@ -100,6 +101,7 @@ export default function DashboardPage() {
   const [activeSector, setActiveSector] = useState("pharmacy");
   const [loading, setLoading] = useState(true);
   const [marginReport, setMarginReport] = useState<MarginReport | null>(null);
+  const [recoveredTotal, setRecoveredTotal] = useState<number>(0);
   const supabase = createClient();
 
   useEffect(() => {
@@ -146,6 +148,16 @@ export default function DashboardPage() {
         setTrends(trendsData || []);
         setTenant(tenantData);
         setMarginReport({ criticalCount: reportData.criticalCount ?? 0, martyrs: reportData.martyrs ?? [], latestFile: reportData.latestFile });
+        // Fetch recovered total from price_logs
+        const { data: logs, error: logsError } = await supabase
+          .from('price_logs')
+          .select('gap_recovered');
+        
+        if (!logsError && logs) {
+          const total = logs.reduce((sum, log) => sum + (Number(log.gap_recovered) || 0), 0);
+          setRecoveredTotal(total);
+        }
+
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
       } finally {
@@ -157,6 +169,34 @@ export default function DashboardPage() {
     const intervalId = setInterval(() => fetchData(true), 30_000);
     return () => clearInterval(intervalId);
   }, [supabase]);
+
+  const handleApplyPrice = async (m: MartyrRow) => {
+    try {
+      const res = await fetch('/api/apply-price', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sku: m.sku,
+          old_price: m.price,
+          new_price: m.suggested_price,
+          gap_recovered: m.gap
+        })
+      });
+      
+      if (res.ok) {
+        setRecoveredTotal(prev => prev + (Number(m.gap) || 0));
+        setMarginReport(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            martyrs: prev.martyrs.map(row => row.sku === m.sku ? { ...row, applied: true } : row)
+          }
+        });
+      }
+    } catch (err) {
+      console.error("Error applying price:", err);
+    }
+  };
 
   if (loading) {
     return (
@@ -178,15 +218,24 @@ export default function DashboardPage() {
           {/* PRIMERO: Márgenes en Riesgo (widget principal, datos de /api/latest-report) */}
           <section className="space-y-4">
             <h2 className="text-lg font-bold text-slate-800 tracking-tight">Márgenes en Riesgo</h2>
-            {showGapCard && (
-              <div className={`rounded-2xl border-2 p-6 md:p-8 text-center ${marginReport!.criticalCount > 0 || hasTestAgro ? "bg-red-500/15 border-red-500 text-red-900 shadow-lg shadow-red-500/10" : "bg-amber-500/10 border-amber-500 text-amber-900"}`}>
-                <p className="text-sm font-semibold uppercase tracking-wider opacity-90 mb-1">GAP de ganancia</p>
-                <p className="text-4xl md:text-6xl font-black tabular-nums">
-                  ${totalGapFromReport.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {showGapCard && (
+                <div className={`rounded-2xl border-2 p-6 md:p-8 text-center ${marginReport!.criticalCount > 0 || hasTestAgro ? "bg-red-500/15 border-red-500 text-red-900 shadow-lg shadow-red-500/10" : "bg-amber-500/10 border-amber-500 text-amber-900"}`}>
+                  <p className="text-sm font-semibold uppercase tracking-wider opacity-90 mb-1">GAP de ganancia</p>
+                  <p className="text-4xl md:text-5xl font-black tabular-nums">
+                    ${totalGapFromReport.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                  <p className="text-xs mt-2 opacity-80 uppercase font-bold tracking-tight">Potencial a recuperar</p>
+                </div>
+              )}
+              <div className="rounded-2xl border-2 p-6 md:p-8 text-center bg-emerald-500/15 border-emerald-500 text-emerald-900 shadow-lg shadow-emerald-500/10">
+                <p className="text-sm font-semibold uppercase tracking-wider opacity-90 mb-1">YA RECUPERADO</p>
+                <p className="text-4xl md:text-5xl font-black tabular-nums text-emerald-600">
+                  ${recoveredTotal.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
-                <p className="text-xs mt-2 opacity-80">Dinero a recuperar subiendo precios sugeridos</p>
+                <p className="text-xs mt-2 opacity-80 uppercase font-bold tracking-tight">Ganancia asegurada - Fase 3</p>
               </div>
-            )}
+            </div>
             {marginReport && (marginReport.criticalCount > 0 || marginReport.martyrs.length > 0) ? (
               <Card className={`rounded-2xl shadow-sm overflow-hidden border-2 ${marginReport.criticalCount > 0 ? "border-red-200 bg-red-50/50" : "border-amber-200 bg-amber-50/30"}`}>
                 <CardHeader className="pb-3 border-b border-slate-100">
@@ -214,11 +263,12 @@ export default function DashboardPage() {
                         <thead>
                           <tr className="border-b border-slate-200 bg-slate-50/80">
                             <th className="text-left py-3 px-4 font-semibold text-slate-700">SKU</th>
-                            <th className="text-right py-3 px-4 font-semibold text-slate-700">Costo (Supabase)</th>
-                            <th className="text-right py-3 px-4 font-semibold text-slate-700">Venta (SQLite)</th>
+                            <th className="text-right py-3 px-4 font-semibold text-slate-700 hidden md:table-cell">Costo (Supabase)</th>
+                            <th className="text-right py-3 px-4 font-semibold text-slate-700 hidden lg:table-cell">Venta (SQLite)</th>
                             <th className="text-right py-3 px-4 font-semibold text-slate-700">Margen %</th>
                             <th className="text-right py-3 px-4 font-semibold text-slate-700">Gap $</th>
-                            <th className="text-right py-3 px-4 font-semibold text-slate-700">Precio sugerido</th>
+                            <th className="text-right py-3 px-4 font-semibold text-slate-700">Sugerido</th>
+                            <th className="text-center py-3 px-4 font-semibold text-slate-700">Acción</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -229,13 +279,27 @@ export default function DashboardPage() {
                             const rowBg = isRed ? "bg-red-50" : isYellow ? "bg-amber-50/70" : "bg-emerald-50/70";
                             const borderLeft = isRed ? "border-l-4 border-l-red-500" : isYellow ? "border-l-4 border-l-amber-500" : "border-l-4 border-l-emerald-500";
                             return (
-                              <tr key={idx} className={`border-b border-slate-100 ${rowBg} ${borderLeft}`}>
+                              <tr key={idx} className={`border-b border-slate-100 ${m.applied ? "bg-emerald-100/50" : rowBg} ${borderLeft}`}>
                                 <td className="py-2.5 px-4 font-medium text-slate-800">{m.sku}</td>
-                                <td className="py-2.5 px-4 text-right text-slate-700">{typeof m.cost_supa === "number" ? `$${m.cost_supa.toLocaleString("es-AR", { minimumFractionDigits: 2 })}` : "—"}</td>
-                                <td className="py-2.5 px-4 text-right text-slate-700">${Number(m.price).toLocaleString("es-AR", { minimumFractionDigits: 2 })}</td>
+                                <td className="py-2.5 px-4 text-right text-slate-700 hidden md:table-cell">{typeof m.cost_supa === "number" ? `$${m.cost_supa.toLocaleString("es-AR", { minimumFractionDigits: 2 })}` : "—"}</td>
+                                <td className="py-2.5 px-4 text-right text-slate-700 hidden lg:table-cell">${Number(m.price).toLocaleString("es-AR", { minimumFractionDigits: 2 })}</td>
                                 <td className={`py-2.5 px-4 text-right font-semibold ${isRed ? "text-red-700" : isYellow ? "text-amber-700" : "text-emerald-700"}`}>{margin.toFixed(2)}%</td>
-                                <td className="py-2.5 px-4 text-right text-slate-700">${Number(m.gap).toLocaleString("es-AR", { minimumFractionDigits: 2 })}</td>
-                                <td className="py-2.5 px-4 text-right text-slate-700">{typeof m.suggested_price === "number" ? `$${m.suggested_price.toLocaleString("es-AR", { minimumFractionDigits: 2 })}` : "—"}</td>
+                                <td className="py-2.5 px-4 text-right text-slate-700 font-bold">${Number(m.gap).toLocaleString("es-AR", { minimumFractionDigits: 2 })}</td>
+                                <td className="py-2.5 px-4 text-right text-slate-900 font-black">{typeof m.suggested_price === "number" ? `$${m.suggested_price.toLocaleString("es-AR", { minimumFractionDigits: 2 })}` : "—"}</td>
+                                <td className="py-2.5 px-4 text-center">
+                                  {m.applied ? (
+                                    <div className="flex items-center justify-center gap-1 text-emerald-600 font-bold text-xs">
+                                      <CheckCircle2 className="h-4 w-4" /> APLICADO
+                                    </div>
+                                  ) : (
+                                    <button 
+                                      onClick={() => handleApplyPrice(m)}
+                                      className="bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold px-3 py-1 rounded-md shadow-sm transition-all active:scale-95 flex items-center gap-1 mx-auto"
+                                    >
+                                      <Zap className="h-3 w-3" /> APLICAR
+                                    </button>
+                                  )}
+                                </td>
                               </tr>
                             );
                           })}
