@@ -26,6 +26,11 @@ export async function POST(req: Request) {
     );
 
     try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+            return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+        }
+
         const { sku, old_price, new_price, gap_recovered } = await req.json();
 
         if (!sku || new_price === undefined) {
@@ -39,7 +44,8 @@ export async function POST(req: Request) {
                     sku, 
                     old_price, 
                     new_price, 
-                    gap_recovered: gap_recovered || 0
+                    gap_recovered: gap_recovered || 0,
+                    user_id: user.id
                 }
             ])
             .select();

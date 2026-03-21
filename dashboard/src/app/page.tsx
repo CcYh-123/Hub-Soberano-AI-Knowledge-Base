@@ -233,7 +233,12 @@ export default function DashboardPage() {
                 <p className="text-4xl md:text-5xl font-black tabular-nums text-emerald-600">
                   ${recoveredTotal.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
-                <p className="text-xs mt-2 opacity-80 uppercase font-bold tracking-tight">Ganancia asegurada - Fase 3</p>
+                <div className="flex items-center justify-center gap-2 mt-2">
+                  <Badge variant="outline" className="bg-emerald-100/50 text-emerald-700 border-emerald-200 text-[10px] font-bold">
+                    COMISIÓN AGENTE (10%): -${(recoveredTotal * 0.10).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </Badge>
+                </div>
+                <p className="text-xs mt-2 opacity-80 uppercase font-bold tracking-tight">Ganancia asegurada - Fase 4</p>
               </div>
             </div>
             {marginReport && (marginReport.criticalCount > 0 || marginReport.martyrs.length > 0) ? (
@@ -320,11 +325,7 @@ export default function DashboardPage() {
             )}
           </section>
 
-          {/* Profit Gap Radar (más abajo: recuperación por producto) */}
-          <ProfitGapWidget />
-
-          {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mb-6">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <div className="h-8 w-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-sm">
@@ -359,6 +360,69 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Estado de Cuenta Antigravity - Modelo de Riqueza */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <Card className="bg-blue-600 text-white rounded-2xl shadow-xl overflow-hidden border-none transform hover:scale-[1.02] transition-all">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-xs uppercase tracking-[0.2em] font-black opacity-80">Suscripción Antigravity</CardTitle>
+                  <Crown className="h-4 w-4" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-black">Plan Enterprise PRO</p>
+                <div className="flex items-center gap-2 mt-2">
+                    <Badge className="bg-white/20 hover:bg-white/30 text-white border-none text-[10px] uppercase font-bold">ACTIVO</Badge>
+                    <span className="text-xs font-medium opacity-80">$29.900 / mes (Base)</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col justify-center p-6 border-l-4 border-l-emerald-500">
+               <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1">Fee Variable Acumulado</p>
+               <p className="text-3xl font-black text-slate-900 tabular-nums">
+                ${(recoveredTotal * 0.10).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+               </p>
+               <p className="text-xs text-slate-400 mt-1">10% de ganancia recuperada real</p>
+            </Card>
+
+            <div className="flex flex-col gap-4">
+               <button 
+                  onClick={() => {
+                    const top3 = [...(marginReport?.martyrs || [])]
+                        .sort((a, b) => b.gap - a.gap)
+                        .slice(0, 3)
+                        .map(m => `- ${m.sku}: +$${m.gap.toLocaleString()}`)
+                        .join('\n');
+                        
+                    const report = `
+# 🛡️ Reporte Táctico Antigravity | ${new Date().toLocaleDateString('es-AR')}
+## 📊 Resumen de la Sesión
+- **Ganancia Recuperada**: $${recoveredTotal.toLocaleString()}
+- **Comisión Generada**: $${(recoveredTotal * 0.10).toLocaleString()}
+- **Estado de Cuenta**: Suscripción Base Pro Active
+
+## 🚀 Top 3 Optimizaciones
+${top3}
+
+---
+Asegurando el "Profitability North Star" para la organización.
+`;
+                    navigator.clipboard.writeText(report);
+                    alert("¡Reporte generado y copiado al portapapeles! Listo para walkthrough.md");
+                  }}
+                  className="bg-slate-900 text-white font-bold h-full rounded-2xl flex items-center justify-center gap-3 hover:bg-slate-800 active:scale-95 transition-all shadow-lg hover:shadow-slate-500/20"
+               >
+                 <ShieldCheck className="h-5 w-5 text-emerald-400" /> Generar Reporte Walkthrough
+               </button>
+            </div>
+          </div>
+          
+          {/* Radar de Oportunidades - Fase 4 */}
+          <div className="mb-8">
+            <ProfitGapWidget />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
