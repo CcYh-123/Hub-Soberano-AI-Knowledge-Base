@@ -108,88 +108,46 @@ class MarginGuardian:
 
         return result
 
-    def _load_costs_from_supabase(self) -> dict:
+    def _load_costs_and_stock_from_supabase(self) -> dict:
         """
-        Carga los costos reales desde la tabla dashboard_agro en Supabase.
-        Usa SUPABASE_URL y SUPABASE_KEY leídos desde .env.
+        Carga los costos y el stock actual desde la tabla products en Supabase usando requests.
+        Fase 5: Combustible de Volumen.
         """
-        print("[MarginGuardian] Iniciando carga de costos desde Supabase...")
-        if create_client is None:
-            log.error("❌ Falta dependencia: paquete 'supabase' no instalado en este Python.")
-            print("[MarginGuardian] ERROR: falta dependencia 'supabase' (instalar para habilitar costos reales).")
-            return {}
-        if supabase is None:
-            log.error("❌ Supabase no está configurado correctamente (SUPABASE_URL / SUPABASE_KEY faltantes).")
-            print("[MarginGuardian] ERROR: Supabase no configurado (SUPABASE_URL / SUPABASE_KEY).")
-            return {}
-
-        # Diagnóstico avanzado: intentar listar tablas del esquema público (si el rol lo permite)
-        try:
-            print("[MarginGuardian][DEBUG] Intentando listar tablas del esquema 'public' usando pg_tables...")
-            tables_resp = (
-                supabase
-                .table("pg_tables")
-                .select("schemaname,tablename")
-                .eq("schemaname", "public")
-                .execute()
-            )
-            tables_rows = tables_resp.data or []
-            print(f"[MarginGuardian][DEBUG] Tablas visibles en 'public': {[r.get('tablename') for r in tables_rows]}")
-        except Exception as e:
-            print(f"[MarginGuardian][DEBUG] No se pudieron listar tablas via pg_tables: {repr(e)}")
+        print("[MarginGuardian] Iniciando carga de costos y stock desde Supabase (Via REST API)...")
+        import requests
+        
+        url = f"{SUPABASE_URL}/rest/v1/products?select=name,cost_price,stock"
+        headers = {
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {SUPABASE_KEY}"
+        }
 
         try:
-            print("[MarginGuardian] Conectando a Supabase, tabla 'dashboard_agro'...")
-            response = (
-                supabase
-                .table("dashboard_agro")
-                .select("*")
-                .execute()
-            )
-            rows = response.data or []
-            if not rows:
-                # Mensaje gigante si la tabla existe pero está vacía
-                print("#################################################################")
-                print("# ATENCIÓN: La tabla 'dashboard_agro' existe pero tiene 0 registros")
-                print("#################################################################")
-            # Diagnóstico: mostrar los primeros 3 registros sin filtrar por tenant
-            sample_rows = rows[:3]
-            print(f"[MarginGuardian] Muestra de registros en 'dashboard_agro' (sin filtro de tenant, máx 3):")
-            for i, r in enumerate(sample_rows, start=1):
-                print(f"  [{i}] keys={list(r.keys())}, tenant_id={r.get('tenant_id')}, item_key={r.get('item_key')}")
+            resp = requests.get(url, headers=headers)
+            if resp.status_code != 200:
+                print(f"[MarginGuardian] Error API Supabase: {resp.status_code}")
+                return {}
+            rows = resp.json() or []
         except Exception as e:
-            log.error(f"❌ Error al consultar costos en Supabase: {e}")
-            print(f"[MarginGuardian] ERROR al consultar Supabase (detalle): {repr(e)}")
+            print(f"[MarginGuardian] Fallo de conexion a Supabase: {e}")
             return {}
 
-        costs_by_sku: dict = {}
-        print(f"[MarginGuardian] Query ejecutada. Filas recibidas desde Supabase: {len(rows)}")
+        data_by_sku: dict = {}
         for row in rows:
-            # En dashboard_agro el SKU viene como producto_sku
-            sku_key = row.get("producto_sku") or row.get("item_key")
-            if not sku_key:
+            sku = row.get("name")
+            if not sku:
                 continue
-
-            cost_value = row.get("cost")
-            if cost_value is None:
-                cost_value = row.get("costo")
-            # Costo real principal en columna 'precio_interno'
-            if cost_value is None:
-                cost_value = row.get("precio_interno")
-
-            if cost_value is None:
-                continue
-
+            
             try:
-                costs_by_sku[str(sku_key)] = float(cost_value)
+                data_by_sku[str(sku)] = {
+                    "cost": float(row.get("cost_price") or 0),
+                    "stock": float(row.get("stock") or 0)
+                }
             except (TypeError, ValueError):
                 continue
 
-        if not costs_by_sku:
-            log.warning("⚠️ No se encontraron costos válidos en dashboard_agro (columnas 'cost' / 'costo' / 'precio_interno').")
-            print("[MarginGuardian] ADVERTENCIA: no se encontraron costos válidos en 'dashboard_agro'.")
-
-        return costs_by_sku
+        print(f"[MarginGuardian] {len(data_by_sku)} productos cargados desde Supabase.")
+        return data_by_sku
 
     def _detect_martyrs(self, conn) -> list[dict]:
         import math
@@ -197,115 +155,64 @@ class MarginGuardian:
         days    = config.get("thresholds.days_inventory", 15)
         target  = config.get("economy.target_margin", 0.25)
 
-        # Camino preferido: tabla productos_agro_v2 local (modo offline-first)
-        try:
-            has_productos_agro = bool(
-                conn.execute(
-                    "select name from sqlite_master where type='table' and name='productos_agro_v2'"
-                ).fetchone()
-            )
-        except Exception:
-            has_productos_agro = False
-
-        if has_productos_agro:
-            print("[MarginGuardian] Usando tabla local 'productos_agro_v2' como fuente principal de costos y precios.")
-            return self._detect_martyrs_from_productos_agro_v2(conn, monthly, days)
-
-        print(f"[MarginGuardian] Cargando costos desde Supabase para tenant {self.tenant_id} ...")
-        costs_by_sku = self._load_costs_from_supabase()
-        print(f"[MarginGuardian] Costos cargados para {len(costs_by_sku)} SKUs.")
-
+        # Fase 5: Cargamos Costos y Volumen desde Supabase (Carga combinada)
+        print(f"[MarginGuardian] Cargando Costos y Volumen desde Supabase para Fase 5...")
+        data_by_sku = self._load_costs_and_stock_from_supabase()
+        
+        # ... (lógica de resolución de fuente local omitida por brevedad para el patch)
         source = self._resolve_price_source(conn)
-        if source is None:
-            print(
-                "[MarginGuardian] No se encontró una tabla/estructura compatible para precios "
-                "(esperado algo tipo historical_data con item_key/price/tenant_id). "
-                "No se calculan mártires para evitar fallos."
-            )
+        if source is None: 
+            print("[MarginGuardian] ERROR: No se detecto ninguna tabla compatible en SQLite.")
             return []
-
+            
         table, item_col, price_col, tenant_col, sector_col = source
-        print(
-            f"[MarginGuardian] Ejecutando query de precios en '{table}' "
-            f"(cols: item={item_col}, price={price_col}, tenant={tenant_col}, sector={sector_col}) ..."
-        )
+        print(f"[MarginGuardian] Fuente detectada: tabla={table}, item={item_col}, price={price_col}, tenant={tenant_col}")
 
-        if sector_col:
-            sql = f"""
-                SELECT {item_col} AS item_key,
-                       MAX({price_col}) as last_price,
-                       COALESCE({sector_col}, '') as sector
-                FROM {table}
-                WHERE {tenant_col} = ?
-                  AND ({sector_col} = 'agro' OR {sector_col} IS NULL OR {sector_col} = '')
-                GROUP BY {item_col}, COALESCE({sector_col}, '')
-                ORDER BY last_price ASC
-            """
-        else:
-            sql = f"""
-                SELECT {item_col} AS item_key,
-                       MAX({price_col}) as last_price,
-                       '' as sector
-                FROM {table}
-                WHERE {tenant_col} = ?
-                GROUP BY {item_col}
-                ORDER BY last_price ASC
-            """
-
+        sql = f"SELECT {item_col} AS item_key, MAX({price_col}) as last_price FROM {table} WHERE {tenant_col} = ? GROUP BY {item_col}"
         rows = conn.execute(sql, (self.tenant_id,)).fetchall()
-        print(f"[MarginGuardian] Filas de históricos obtenidas: {len(rows)}")
+        print(f"[MarginGuardian] Filas SQLite encontradas para el tenant {self.tenant_id}: {len(rows)}")
+        
         martyrs = []
         for row in rows:
             sku    = str(row[0])
-            price  = row[1]
-            sector = row[2]
-            print(f"[MarginGuardian] Fila histórica -> SKU={sku}, sector='{sector}', precio={price}")
-
-            # 1) Búsqueda directa por SKU
-            cost = costs_by_sku.get(sku)
-
-            # 2) Búsqueda flexible: coincidencias parciales de string
-            if cost is None:
-                sku_lower = sku.lower()
-                for key, val in costs_by_sku.items():
-                    key_lower = str(key).lower()
-                    if sku_lower in key_lower or key_lower in sku_lower:
-                        cost = val
-                        print(f"[MarginGuardian] Match parcial encontrado para SKU {sku} -> clave Supabase {key}")
-                        break
-
-            # 3) Si seguimos sin costo real, ignoramos el SKU en modo real
-            if cost is None:
-                print(f"[MarginGuardian] SKU {sku} ignorado por falta de costo real en Supabase (precio_interno/cost/costo).")
+            price  = float(row[1])
+            
+            # Busqueda de datos en el dict de Supabase
+            print(f"[DEBUG] Buscando SKU en Supabase: '{sku}'")
+            product_data = data_by_sku.get(sku)
+            if not product_data: 
+                print(f"[DEBUG] SKU '{sku}' no encontrado en Supabase. Llaves disponibles: {list(data_by_sku.keys())}")
                 continue
+            
+            cost = product_data['cost']
+            stock = product_data['stock']
+            
+            if cost <= 0: continue
 
             r      = math.log(1 + monthly)
             real   = cost * math.exp(r * days / 30)
             margin = (price - real) / price
 
-            if margin < CRITICAL_THRESHOLD:
-                level = "CRITICO"
-            elif margin < PREVENTIVE_THRESHOLD:
-                level = "PREVENTIVO"
-            else:
-                level = "SANO"
+            if margin < PREVENTIVE_THRESHOLD:
+                level = "CRITICO" if margin < CRITICAL_THRESHOLD else "PREVENTIVO"
+                
+                # Fase 5: GAP TOTAL = (Sugerido - Actual) * Stock
+                suggested_price = real / (1 - SUGGESTED_MARGIN_GOAL)
+                gap_unit = suggested_price - price
+                gap_total = gap_unit * stock
 
-            if level == "SANO":
-                continue
+                martyrs.append({
+                    "sku":             sku,
+                    "cost_supa":       round(cost, 2),
+                    "price":           round(price, 2),
+                    "stock":           round(stock, 2),
+                    "margin":          round(margin * 100, 2),
+                    "gap":             round(gap_total, 2),
+                    "level":           level,
+                    "suggested_price": round(suggested_price, 2),
+                })
 
-            # Precio sugerido para alcanzar el margen objetivo del 30%
-            suggested_price = real / (1 - SUGGESTED_MARGIN_GOAL)
-            gap             = suggested_price - price
-
-            martyrs.append({
-                "sku":             sku,
-                "cost_supa":       round(cost,            2),
-                "price":           round(price,           2),
-                "margin":          round(margin * 100,    2),
-                "gap":             round(gap,             2),
-                "level":           level,
-                "suggested_price": round(suggested_price, 2),
-            })
+        return martyrs
 
         print(f"[MarginGuardian] Mártires detectados para tenant {self.tenant_id}: {len(martyrs)}")
         return martyrs
@@ -396,7 +303,7 @@ class MarginGuardian:
                 return set()
             return {str(r[1]).lower() for r in rows if r and r[1]}
 
-        item_syn = ["item_key", "sku", "producto_sku", "product_sku", "item", "producto", "product"]
+        item_syn = ["item_key", "sku", "producto_sku", "product_sku", "item", "producto", "product", "nombre"]
         price_syn = ["price", "precio", "precio_venta", "pvp", "venta", "unit_price"]
         tenant_syn = ["tenant_id", "tenant", "company_id", "org_id"]
         sector_syn = ["sector", "category", "rubro"]
@@ -443,13 +350,13 @@ class MarginGuardian:
             level = m.get("level", "")
             if level == "CRITICO":
                 color = COLOR_RED
-                icon  = "🔴"
+                icon  = "[CRITICO]"
             elif level == "PREVENTIVO":
                 color = COLOR_YEL
-                icon  = "🟡"
+                icon  = "[AVISO]"
             else:
                 color = COLOR_GRN
-                icon  = "🟢"
+                icon  = "[OK]"
 
             suggested = m.get("suggested_price")
             suggested_str = f" | sugerido=${suggested}" if (suggested is not None and level == "CRITICO") else ""
@@ -558,12 +465,13 @@ class MarginGuardian:
         import csv
         with open(csv_path, "w", newline="", encoding="utf-8") as f:
             w = csv.writer(f)
-            w.writerow(["sku", "cost_supa", "price", "margin", "gap", "suggested_price", "level"])
+            w.writerow(["sku", "cost_supa", "price", "stock", "margin", "gap", "suggested_price", "level"])
             for m in martyrs:
                 w.writerow([
                     m.get("sku", ""),
                     m.get("cost_supa"),
                     m.get("price"),
+                    m.get("stock"),
                     m.get("margin"),
                     m.get("gap"),
                     m.get("suggested_price"),

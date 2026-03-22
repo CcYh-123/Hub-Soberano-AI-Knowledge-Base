@@ -80,6 +80,7 @@ interface MartyrRow {
   sku: string;
   cost_supa: number;
   price: number;
+  stock: number;
   margin: number;
   gap: number;
   suggested_price: number;
@@ -266,13 +267,14 @@ export default function DashboardPage() {
                   {marginReport.martyrs.length > 0 ? (
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b border-slate-200 bg-slate-50/80">
+                        <thead className="bg-slate-50/80 border-b border-slate-200">
+                          <tr>
                             <th className="text-left py-3 px-4 font-semibold text-slate-700">SKU</th>
                             <th className="text-right py-3 px-4 font-semibold text-slate-700 hidden md:table-cell">Costo (Supabase)</th>
                             <th className="text-right py-3 px-4 font-semibold text-slate-700 hidden lg:table-cell">Venta (SQLite)</th>
                             <th className="text-right py-3 px-4 font-semibold text-slate-700">Margen %</th>
-                            <th className="text-right py-3 px-4 font-semibold text-slate-700">Gap $</th>
+                            <th className="text-right py-3 px-4 font-semibold text-slate-700">Vol (Stock)</th>
+                            <th className="text-right py-3 px-4 font-semibold text-slate-700">Gap Total</th>
                             <th className="text-right py-3 px-4 font-semibold text-slate-700">Sugerido</th>
                             <th className="text-center py-3 px-4 font-semibold text-slate-700">Acción</th>
                           </tr>
@@ -282,8 +284,9 @@ export default function DashboardPage() {
                             const margin = Number(m.margin) || 0;
                             const isRed = margin < 15;
                             const isYellow = margin >= 15 && margin < 25;
-                            const rowBg = isRed ? "bg-red-50" : isYellow ? "bg-amber-50/70" : "bg-emerald-50/70";
+                            const rowBg = m.applied ? "bg-emerald-100/50" : isRed ? "bg-red-50" : isYellow ? "bg-amber-50/70" : "bg-emerald-50/70";
                             const borderLeft = isRed ? "border-l-4 border-l-red-500" : isYellow ? "border-l-4 border-l-amber-500" : "border-l-4 border-l-emerald-500";
+                            const totalGap = (m.gap || 0) * (m.stock || 1);
                             return (
                               <tr key={idx} className={`border-b border-slate-100 ${m.applied ? "bg-emerald-100/50" : rowBg} ${borderLeft}`}>
                                 <td className="py-2.5 px-4 font-medium text-slate-800">{m.sku}</td>

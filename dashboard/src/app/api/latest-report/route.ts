@@ -9,9 +9,9 @@ const REPORTS_DIR = join(process.cwd(), '..', 'reports');
 const FALLBACK_REPORTS_DIR = join(process.cwd(), 'reports');
 
 export interface MartyrRow {
-  sku: string;
-  cost_supa: number;
+  item: string;
   price: number;
+  stock: number;
   margin: number;
   gap: number;
   suggested_price: number;
@@ -30,7 +30,7 @@ function parseCsv(content: string): MartyrRow[] {
       const v = values[j];
       if (v === '' || v === undefined) {
         row[h] = h === 'sku' || h === 'level' ? '' : 0;
-      } else if (h === 'cost_supa' || h === 'price' || h === 'margin' || h === 'gap' || h === 'suggested_price') {
+      } else if (h === 'cost_supa' || h === 'price' || h === 'margin' || h === 'gap' || h === 'suggested_price' || h === 'stock') {
         row[h] = Number(v) || 0;
       } else {
         row[h] = v;

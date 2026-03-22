@@ -198,3 +198,52 @@
 **Gap a recuperar**: $10.00 por unidad para margen del 15%.
 
 > Nota: Este registro confirma la transición exitosa a la tabla productos_agro_v2.
+
+---
+## ✅ SISTEMA ACTIVO SIN NOVEDADES — 2026-03-22 00:01 UTC
+**Status**: WARNING  
+**Detalle**: No se detectaron productos con margen bajo para el tenant 3947b9dc-7e89-4a05-a659-46e8ccdde558.  
+
+---
+## ✅ SISTEMA ACTIVO SIN NOVEDADES — 2026-03-22 00:03 UTC
+**Status**: WARNING  
+**Detalle**: No se detectaron productos con margen bajo para el tenant 3947b9dc-7e89-4a05-a659-46e8ccdde558.  
+
+---
+## ✅ SISTEMA ACTIVO SIN NOVEDADES — 2026-03-22 00:03 UTC
+**Status**: WARNING  
+**Detalle**: No se detectaron productos con margen bajo para el tenant 3947b9dc-7e89-4a05-a659-46e8ccdde558.  
+
+---
+## ✅ SISTEMA ACTIVO SIN NOVEDADES — 2026-03-22 00:05 UTC
+**Status**: WARNING  
+**Detalle**: No se detectaron productos con margen bajo para el tenant 3947b9dc-7e89-4a05-a659-46e8ccdde558.  
+
+---
+## ✅ SISTEMA ACTIVO SIN NOVEDADES — 2026-03-22 00:06 UTC
+**Status**: WARNING  
+**Detalle**: No se detectaron productos con margen bajo para el tenant 3947b9dc-7e89-4a05-a659-46e8ccdde558.  
+
+---
+## ✅ SISTEMA ACTIVO SIN NOVEDADES — 2026-03-22 00:06 UTC
+**Status**: WARNING  
+**Detalle**: No se detectaron productos con margen bajo para el tenant 3947b9dc-7e89-4a05-a659-46e8ccdde558.  
+
+---
+## ✅ SISTEMA ACTIVO SIN NOVEDADES — 2026-03-22 00:06 UTC
+**Status**: WARNING  
+**Detalle**: No se detectaron productos con margen bajo para el tenant 3947b9dc-7e89-4a05-a659-46e8ccdde558.  
+
+---
+## 🚨 REPORTE DE PROTECCIÓN DE MARGEN - SECTOR AGRO — 2026-03-22 00:07 UTC
+**Status**: ALERT  
+**Críticos**: 1  
+**Gap de Ganancia total**: $67,228.21/unidad  
+
+> Nota: Valores sujetos a variabilidad logística y tipo de cambio.
+
+| Producto | Margen% | Gap de Ganancia/U | Nivel | Precio Sugerido |
+|---|---|---|---|---|
+| Glifosato Martir | -7.35% | $67228.21 | CRITICO | $161.02 |
+
+**Acción sugerida**: Ejecutar `price_rule_executor.py --apply`
