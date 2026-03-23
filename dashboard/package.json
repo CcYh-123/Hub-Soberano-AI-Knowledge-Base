@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Antigravity Dashboard - Phase 4 Wealth Model Ready",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3000",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"

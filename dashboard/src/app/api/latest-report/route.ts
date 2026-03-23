@@ -4,6 +4,11 @@ export const dynamic = 'force-dynamic';
 import { existsSync, readdirSync, readFileSync, statSync } from 'fs';
 import { join } from 'path';
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
 
 const REPORTS_DIR = join(process.cwd(), '..', 'reports');
 const FALLBACK_REPORTS_DIR = join(process.cwd(), 'reports');
@@ -16,6 +21,10 @@ export interface MartyrRow {
   gap: number;
   suggested_price: number;
   level: string;
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
 }
 
 function parseCsv(content: string): MartyrRow[] {
@@ -51,11 +60,42 @@ function getReportsDir(): string | null {
   return null;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const sector = searchParams.get('sector') || 'fashion';
+
+  // AGRO: solo Python; nunca CSV (evita JSON fashion y gap $0 en el cliente)
+  if (sector === 'agro') {
+    const apiBase = (process.env.PYTHON_API_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
+    try {
+      const response = await fetch(`${apiBase}/get-martires`, { cache: 'no-store' });
+      if (response.ok) {
+        const data = await response.json();
+        const rows = Array.isArray(data.productos) ? data.productos : [];
+        // Suma monetaria de pérdida por volumen (gap por producto, mismo criterio que api_bridge)
+        const totalGapMoney = rows.reduce((sum: number, p: Record<string, unknown>) => {
+          return sum + (Number(p.gap) || 0);
+        }, 0);
+        return NextResponse.json(
+          {
+            gap: totalGapMoney,
+            recuperado: 0,
+            products: rows,
+          },
+          { headers: CORS_HEADERS }
+        );
+      }
+      console.error('[latest-report] AGRO: API respondió', response.status, await response.text().catch(() => ''));
+    } catch (e) {
+      console.error('Fallo de conexión con Antigravity API Bridge (PYTHON_API_URL):', e);
+    }
+    return NextResponse.json({ gap: 0, recuperado: 0, products: [] }, { headers: CORS_HEADERS });
+  }
+
   try {
     const dir = getReportsDir();
     if (!dir) {
-      return NextResponse.json({ criticalCount: 0, martyrs: [], latestFile: null });
+      return NextResponse.json({ criticalCount: 0, martyrs: [], latestFile: null }, { headers: CORS_HEADERS });
     }
 
     const files = readdirSync(dir)
@@ -64,7 +104,7 @@ export async function GET() {
       .sort((a, b) => b.mtime - a.mtime);
 
     if (files.length === 0) {
-      return NextResponse.json({ criticalCount: 0, martyrs: [], latestFile: null });
+      return NextResponse.json({ criticalCount: 0, martyrs: [], latestFile: null }, { headers: CORS_HEADERS });
     }
 
     const latestPath = join(dir, files[0].name);
@@ -72,13 +112,19 @@ export async function GET() {
     const martyrs = parseCsv(content);
     const criticalCount = martyrs.filter((m) => m.margin < 15 || (m.level && m.level.toUpperCase() === 'CRITICO')).length;
 
-    return NextResponse.json({
-      criticalCount,
-      martyrs,
-      latestFile: files[0].name,
-    });
+    return NextResponse.json(
+      {
+        criticalCount,
+        martyrs,
+        latestFile: files[0].name,
+      },
+      { headers: CORS_HEADERS }
+    );
   } catch (error) {
     console.error('Error reading latest margin report:', error);
-    return NextResponse.json({ criticalCount: 0, martyrs: [], error: String(error) }, { status: 500 });
+    return NextResponse.json(
+      { criticalCount: 0, martyrs: [], error: String(error) },
+      { status: 500, headers: CORS_HEADERS }
+    );
   }
 }

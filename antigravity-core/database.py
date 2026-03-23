@@ -1,33 +1,48 @@
-import httpx
+from sqlmodel import SQLModel, Field, create_engine, Session
+from typing import Optional
+from datetime import datetime
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
-class SupabaseClient:
-    def __init__(self):
-        self.url = os.getenv("SUPABASE_URL")
-        self.key = os.getenv("SUPABASE_KEY")
-        if not self.url or not self.key:
-            print("⚠️ ERROR: No encontré SUPABASE_URL o KEY en el .env")
-        
-        self.headers = {
-            "apikey": self.key,
-            "Authorization": f"Bearer {self.key}",
-            "Content-Type": "application/json"
-        }
+# Configuracion del Motor (Usando SQLite local para el nucleo de Antigravity)
+db_url = "sqlite:///antigravity-core/antigravity.db"
+engine = create_engine(db_url, echo=False)
 
-    def traer_productos(self):
-        """Prueba de fuego: trae los primeros 5 productos"""
-        endpoint = f"{self.url}/rest/v1/products?select=*&limit=5"
-        with httpx.Client() as client:
-            response = client.get(endpoint, headers=self.headers)
-            return response.json()
+class Product(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    sku: str = Field(index=True)
+    name: str
+    unit_type: str = "Unidades"
+    current_cost: float = 0.0  # Nombrado exacto segun inventory_auditor.py
+    price: float = 0.0
+    stock: float = 0.0
+    tenant_id: str = Field(index=True)
 
-# Instancia global
-db = SupabaseClient()
+class PriceEvent(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    product_sku: str = Field(index=True)
+    costo_viejo: float
+    costo_nuevo: float
+    delta_erosion: float
+    tenant_id: str = Field(index=True)
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+class TenantConfiguration(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    tenant_id: str = Field(index=True)
+    webhook_url: Optional[str] = None
+    alert_threshold_leak: float = 20.0
+
+def create_db_and_tables():
+    SQLModel.metadata.create_all(engine)
+
+def get_session():
+    with Session(engine) as session:
+        yield session
 
 if __name__ == "__main__":
-    # Si ejecutás este archivo solo, hace un test
-    print("🚀 Probando conexión directa...")
-    print(db.traer_productos())
+    # Test de ignicion
+    create_db_and_tables()
+    print("Boveda de Antigravity Inicializada")

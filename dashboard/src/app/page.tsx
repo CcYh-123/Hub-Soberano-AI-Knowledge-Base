@@ -1,97 +1,88 @@
 "use client";
 
-export const dynamic = "force-dynamic";
-
-
-// Antigravity Hub - Phase 4 Tactical Deployment
-
-import React, { useEffect, useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
+import React, { useState, useEffect } from "react";
+import { 
+  TrendingUp, 
+  AlertTriangle, 
+  ShieldCheck, 
+  Zap, 
+  ArrowRight, 
+  CheckCircle2, 
+  Activity, 
+  Pill, 
+  ShoppingBag,
+  Crown
+} from "lucide-react";
+import { 
+  AreaChart, 
+  Area, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer 
+} from "recharts";
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardHeader, 
+  CardTitle 
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  AlertTriangle,
-  TrendingDown,
-  TrendingUp,
-  Activity,
-  ShieldCheck,
-  Zap,
-  ShoppingBag,
-  Home,
-  Pill,
-  ArrowRight,
-  CheckCircle2
-} from "lucide-react";
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer
-} from "recharts";
+import { createClient } from '@supabase/supabase-js';
 
-import { WhatIfSimulator } from "@/components/what-if-simulator";
-import { SubscriptionGate } from "@/components/subscription-gate";
-import { Crown } from "lucide-react";
-import { AuthGate } from "@/components/auth-gate";
-import { createClient } from "@/utils/supabase/client";
-import ProfitGapWidget from "@/components/ProfitGapWidget";
-
-const API_BASE = "http://localhost:8000";
-
-interface Tenant {
-  id: string;
-  name: string;
-  slug: string;
-  tier: string;
-}
+// Init Supabase Client
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 interface Alert {
-  sector: string;
   item: string;
   price: number;
   timestamp: string;
+  sector: string;
   metadata?: {
-    tag?: string;
-    indicator?: string;
     intelligence_note?: string;
   };
-}
-
-interface Health {
-  overall_health: string;
-  last_sync: string;
 }
 
 interface Trend {
   timestamp: string;
   price: number;
-  item: string;
 }
 
-interface MartyrRow {
+interface WarTableRow {
   sku: string;
   cost_supa: number;
   price: number;
-  stock: number;
   margin: number;
   gap: number;
   suggested_price: number;
-  level: string;
+  stock: number;
   applied?: boolean;
+  reason?: string;
 }
 
+/** Fashion/CSV: criticalCount + martyrs. AGRO (Python): gap + recuperado + products */
 interface MarginReport {
-  criticalCount: number;
-  martyrs: MartyrRow[];
   latestFile?: string | null;
+  criticalCount?: number;
+  martyrs?: WarTableRow[];
+  gap?: number;
+  recuperado?: number;
+  products?: WarTableRow[];
+}
+
+interface Tenant {
+  name: string;
+  tier: 'free' | 'pro' | 'enterprise';
+  sector?: string;
+}
+
+interface Health {
+  overall_health: string;
+  last_check: string;
 }
 
 export default function DashboardPage() {
@@ -100,42 +91,46 @@ export default function DashboardPage() {
   const [trends, setTrends] = useState<Trend[]>([]);
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [orgId, setOrgId] = useState<string>("demo-saas");
-  const [activeSector, setActiveSector] = useState("pharmacy");
+  const [activeSector, setActiveSector] = useState("agro");
   const [loading, setLoading] = useState(true);
   const [marginReport, setMarginReport] = useState<MarginReport | null>(null);
   const [recoveredTotal, setRecoveredTotal] = useState<number>(0);
-  const supabase = createClient();
 
   useEffect(() => {
-    async function fetchData(isBackground = false) {
-      if (!isBackground) setLoading(true);
+    async function fetchData() {
       try {
-        let currentOrgId = "demo-saas";
-        let currentSector = "fashion";
-
+        setLoading(true);
+        let currentSector = activeSector;
+        
+        // Fetch Tenant/Profile
         const { data: { user } } = await supabase.auth.getUser();
-
         if (user) {
           const { data: profile } = await supabase
             .from('profiles')
-            .select('organization_id, sector')
+            .select('*')
             .eq('id', user.id)
             .single();
-
+            
           if (profile) {
-            currentOrgId = profile.organization_id || "demo-saas";
-            currentSector = profile.sector?.toLowerCase() || "fashion";
-            setOrgId(currentOrgId);
-            setActiveSector(currentSector);
+            setTenant({
+              name: profile.full_name || "Soberano User",
+              tier: (profile.tier as any) || 'pro',
+              sector: profile.sector
+            });
+            setOrgId(profile.org_id || "demo-saas");
+            // If user has a locked sector, we might want to respect it, 
+            // but for Phase 5 we default to agro if it's the first load
           }
         }
 
+        // Parallel Fetch for widgets
         const [alertsRes, healthRes, trendsRes, tenantRes, reportRes] = await Promise.all([
-          fetch(`/api/alerts`),
-          fetch(`/api/health`).catch(() => new Response(JSON.stringify({ overall_health: "LOCAL (PYTHON OFFLINE)", last_sync: new Date().toISOString() }))),
-          fetch(`/api/trends/${currentOrgId}/${currentSector}`).catch(() => new Response(JSON.stringify([]))),
-          fetch(`/api/tenant/${currentOrgId}`).catch(() => new Response(JSON.stringify({ id: currentOrgId, name: "Enterprise Hub", slug: currentOrgId, tier: "pro" }))),
-          fetch(`/api/latest-report`).catch(() => new Response(JSON.stringify({ criticalCount: 0, martyrs: [] })))
+          fetch(`/api/alerts?sector=${currentSector}`),
+          fetch(`/api/health?org_id=${orgId}`),
+          fetch(`/api/trends?sector=${currentSector}`),
+          fetch(`/api/tenant/${orgId}`),
+          // API App Router: dashboard/src/app/api/latest-report/route.ts → sector=agro devuelve { gap, recuperado, products }
+          fetch(`/api/latest-report?sector=${currentSector}`)
         ]);
 
         const alertsData = await alertsRes.json();
@@ -144,191 +139,172 @@ export default function DashboardPage() {
         const tenantData = await tenantRes.json();
         const reportData = await reportRes.json();
 
-        // The new API might return just an array or { alerts: [] }
+        if (currentSector === "agro") {
+          console.log("🚜 [DEBUG AGRO] latest-report:", {
+            gap: reportData.gap,
+            recuperado: reportData.recuperado,
+            productsCount: reportData.products?.length,
+          });
+        }
+
         setAlerts(Array.isArray(alertsData) ? alertsData : (alertsData.alerts || []));
         setHealth(healthData);
         setTrends(trendsData || []);
         setTenant(tenantData);
-        setMarginReport({ criticalCount: reportData.criticalCount ?? 0, martyrs: reportData.martyrs ?? [], latestFile: reportData.latestFile });
-        // Fetch recovered total from price_logs
-        const { data: logs, error: logsError } = await supabase
+
+        const isAgroApi =
+          currentSector === "agro" &&
+          reportData != null &&
+          typeof reportData === "object" &&
+          typeof (reportData as { gap?: unknown }).gap === "number" &&
+          Array.isArray((reportData as { products?: unknown }).products);
+
+        if (isAgroApi) {
+          const raw = reportData as {
+            gap: number;
+            recuperado?: number;
+            products?: unknown[];
+            latestFile?: string;
+          };
+          const products: WarTableRow[] = Array.isArray(raw.products)
+            ? raw.products.map((p: unknown) => {
+                const row = p as Record<string, unknown>;
+                return {
+                  sku: String(row.sku ?? ""),
+                  cost_supa: Number(row.cost_supa) || 0,
+                  price: Number(row.price) || 0,
+                  margin: Number(row.margin) || 0,
+                  gap: Number(row.gap) || 0,
+                  suggested_price: Number(row.suggested_price) || 0,
+                  stock: Number(row.stock) || 0,
+                };
+              })
+            : [];
+          const gapMoney = products.reduce((s, p) => s + (Number(p.gap) || 0), 0);
+          setMarginReport({
+            gap: gapMoney,
+            recuperado: raw.recuperado ?? 0,
+            products,
+            latestFile: raw.latestFile ?? "LIVE_API_SYNC",
+          });
+        } else {
+          setMarginReport({
+            criticalCount: reportData.criticalCount ?? 0,
+            martyrs: reportData.martyrs ?? [],
+            latestFile: reportData.latestFile,
+          });
+        }
+
+        // Fetch recovered total
+        const { data: logs } = await supabase
           .from('price_logs')
-          .select('gap_recovered');
+          .select('recovered_gap');
         
-        if (!logsError && logs) {
-          const total = logs.reduce((sum, log) => sum + (Number(log.gap_recovered) || 0), 0);
+        if (logs) {
+          const total = logs.reduce((sum, log) => sum + (Number(log.recovered_gap) || 0), 0);
           setRecoveredTotal(total);
         }
 
-      } catch (error) {
-        console.error("Error fetching dashboard data:", error);
+      } catch (err) {
+        console.error("❌ CRITICAL: Error fetching dashboard data:", err);
       } finally {
-        if (!isBackground) setLoading(false);
+        setLoading(false);
       }
     }
 
     fetchData();
-    const intervalId = setInterval(() => fetchData(true), 30_000);
-    return () => clearInterval(intervalId);
-  }, [supabase]);
+  }, [orgId, activeSector]);
 
-  const handleApplyPrice = async (m: MartyrRow) => {
+  const handleApplyPrice = async (martyr: any) => {
     try {
-      const res = await fetch('/api/apply-price', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sku: m.sku,
-          old_price: m.price,
-          new_price: m.suggested_price,
-          gap_recovered: m.gap
-        })
-      });
-      
-      if (res.ok) {
-        setRecoveredTotal(prev => prev + (Number(m.gap) || 0));
-        setMarginReport(prev => {
-          if (!prev) return prev;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        alert("Sesión expirada. Por favor, ingresá nuevamente.");
+        return;
+      }
+
+      const { error } = await supabase.from('price_logs').insert([{
+        sku: martyr.sku,
+        old_price: martyr.price,
+        new_price: martyr.suggested_price,
+        recovered_gap: martyr.gap,
+        user_id: user.id,
+        sector: activeSector
+      }]);
+
+      if (error) throw error;
+
+      // Update Local State
+      setMarginReport(prev => {
+        if (!prev) return null;
+        if (activeSector === "agro" && prev.products) {
           return {
             ...prev,
-            martyrs: prev.martyrs.map(row => row.sku === m.sku ? { ...row, applied: true } : row)
-          }
-        });
-      }
-    } catch (err) {
+            products: prev.products.map(m =>
+              m.sku === martyr.sku ? { ...m, applied: true } : m
+            ),
+          };
+        }
+        return {
+          ...prev,
+          martyrs: (prev.martyrs ?? []).map(m =>
+            m.sku === martyr.sku ? { ...m, applied: true } : m
+          ),
+        };
+      });
+
+      // Update Recovered Counter
+      setRecoveredTotal(prev => prev + (Number(martyr.gap) || 0));
+      
+      alert(`✅ PRECIO APLICADO: ${martyr.sku} ahora rinde +$${martyr.gap.toLocaleString()}`);
+
+    } catch (err: any) {
       console.error("Error applying price:", err);
+      alert("Error al aplicar precio: " + err.message);
     }
   };
 
-  if (loading) {
+  if (loading && !marginReport) {
     return (
-      <div className="h-screen bg-slate-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600"></div>
-        
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-8">
+        <div className="relative">
+          <Activity className="h-12 w-12 text-blue-600 animate-pulse" />
+          <div className="absolute inset-0 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin"></div>
+        </div>
+        <p className="mt-6 text-slate-500 font-bold uppercase tracking-widest text-xs animate-pulse">Sincronizando con Antigravity Engine...</p>
       </div>
     );
   }
 
-  const totalGapFromReport = marginReport?.martyrs?.reduce((sum, m) => sum + (Number(m.gap) || 0), 0) ?? 0;
-  const hasTestAgro = marginReport?.martyrs?.some((m) => String(m.sku).toUpperCase().includes("PRODUCTO_TEST_AGRO")) ?? false;
-  const showGapCard = (marginReport?.martyrs?.length ?? 0) > 0;
+  const warRows: WarTableRow[] =
+    activeSector === "agro"
+      ? marginReport?.products ?? []
+      : marginReport?.martyrs ?? [];
+
+  const gapDisplay =
+    activeSector === "agro"
+      ? marginReport?.products?.reduce((acc, p) => acc + (Number(p.gap) || 0), 0) ??
+        marginReport?.gap ??
+        0
+      : marginReport?.martyrs?.reduce((acc, m) => acc + (m.gap || 0), 0) ?? 0;
+
+  const showWarCard =
+    marginReport &&
+    (activeSector === "agro"
+      ? (marginReport.products?.length ?? 0) > 0
+      : (marginReport.criticalCount ?? 0) > 0 ||
+        (marginReport.martyrs?.length ?? 0) > 0);
+
+  const warCardBorderCritical =
+    activeSector === "agro"
+      ? warRows.some((m) => m.margin < 25)
+      : (marginReport?.criticalCount ?? 0) > 0;
 
   return (
-    <AuthGate>
       <main className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans">
         <div className="max-w-7xl mx-auto space-y-8">
-          {/* PRIMERO: Márgenes en Riesgo (widget principal, datos de /api/latest-report) */}
-          <section className="space-y-4">
-            <h2 className="text-lg font-bold text-slate-800 tracking-tight">Márgenes en Riesgo</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {showGapCard && (
-                <div className={`rounded-2xl border-2 p-6 md:p-8 text-center ${marginReport!.criticalCount > 0 || hasTestAgro ? "bg-red-500/15 border-red-500 text-red-900 shadow-lg shadow-red-500/10" : "bg-amber-500/10 border-amber-500 text-amber-900"}`}>
-                  <p className="text-sm font-semibold uppercase tracking-wider opacity-90 mb-1">GAP de ganancia</p>
-                  <p className="text-4xl md:text-5xl font-black tabular-nums">
-                    ${totalGapFromReport.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </p>
-                  <p className="text-xs mt-2 opacity-80 uppercase font-bold tracking-tight">Potencial a recuperar</p>
-                </div>
-              )}
-              <div className="rounded-2xl border-2 p-6 md:p-8 text-center bg-emerald-500/15 border-emerald-500 text-emerald-900 shadow-lg shadow-emerald-500/10">
-                <p className="text-sm font-semibold uppercase tracking-wider opacity-90 mb-1">YA RECUPERADO</p>
-                <p className="text-4xl md:text-5xl font-black tabular-nums text-emerald-600">
-                  ${recoveredTotal.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </p>
-                <div className="flex items-center justify-center gap-2 mt-2">
-                  <Badge variant="outline" className="bg-emerald-100/50 text-emerald-700 border-emerald-200 text-[10px] font-bold">
-                    COMISIÓN AGENTE (10%): -${(recoveredTotal * 0.10).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </Badge>
-                </div>
-                <p className="text-xs mt-2 opacity-80 uppercase font-bold tracking-tight">Ganancia asegurada - Fase 4</p>
-              </div>
-            </div>
-            {marginReport && (marginReport.criticalCount > 0 || marginReport.martyrs.length > 0) ? (
-              <Card className={`rounded-2xl shadow-sm overflow-hidden border-2 ${marginReport.criticalCount > 0 ? "border-red-200 bg-red-50/50" : "border-amber-200 bg-amber-50/30"}`}>
-                <CardHeader className="pb-3 border-b border-slate-100">
-                  <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-2 tracking-tight">
-                    {marginReport.criticalCount > 0 ? (
-                      <>
-                        <span className="text-red-600">🚨 ¡ATENCIÓN!</span>
-                        <span>Se detectaron {marginReport.criticalCount} productos con margen crítico</span>
-                      </>
-                    ) : (
-                      <>
-                        <ShieldCheck className="h-4.5 w-4.5 text-amber-600" />
-                        <span>Reporte de margen (Sector Agro)</span>
-                      </>
-                    )}
-                  </CardTitle>
-                  <CardDescription className="text-slate-500 text-xs mt-1">
-                    Último reporte: {marginReport.latestFile || "—"}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-0">
-                  {marginReport.martyrs.length > 0 ? (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead className="bg-slate-50/80 border-b border-slate-200">
-                          <tr>
-                            <th className="text-left py-3 px-4 font-semibold text-slate-700">SKU</th>
-                            <th className="text-right py-3 px-4 font-semibold text-slate-700 hidden md:table-cell">Costo (Supabase)</th>
-                            <th className="text-right py-3 px-4 font-semibold text-slate-700 hidden lg:table-cell">Venta (SQLite)</th>
-                            <th className="text-right py-3 px-4 font-semibold text-slate-700">Margen %</th>
-                            <th className="text-right py-3 px-4 font-semibold text-slate-700">Vol (Stock)</th>
-                            <th className="text-right py-3 px-4 font-semibold text-slate-700">Gap Total</th>
-                            <th className="text-right py-3 px-4 font-semibold text-slate-700">Sugerido</th>
-                            <th className="text-center py-3 px-4 font-semibold text-slate-700">Acción</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {marginReport.martyrs.map((m, idx) => {
-                            const margin = Number(m.margin) || 0;
-                            const isRed = margin < 15;
-                            const isYellow = margin >= 15 && margin < 25;
-                            const rowBg = m.applied ? "bg-emerald-100/50" : isRed ? "bg-red-50" : isYellow ? "bg-amber-50/70" : "bg-emerald-50/70";
-                            const borderLeft = isRed ? "border-l-4 border-l-red-500" : isYellow ? "border-l-4 border-l-amber-500" : "border-l-4 border-l-emerald-500";
-                            const totalGap = (m.gap || 0) * (m.stock || 1);
-                            return (
-                              <tr key={idx} className={`border-b border-slate-100 ${m.applied ? "bg-emerald-100/50" : rowBg} ${borderLeft}`}>
-                                <td className="py-2.5 px-4 font-medium text-slate-800">{m.sku}</td>
-                                <td className="py-2.5 px-4 text-right text-slate-700 hidden md:table-cell">{typeof m.cost_supa === "number" ? `$${m.cost_supa.toLocaleString("es-AR", { minimumFractionDigits: 2 })}` : "—"}</td>
-                                <td className="py-2.5 px-4 text-right text-slate-700 hidden lg:table-cell">${Number(m.price).toLocaleString("es-AR", { minimumFractionDigits: 2 })}</td>
-                                <td className={`py-2.5 px-4 text-right font-semibold ${isRed ? "text-red-700" : isYellow ? "text-amber-700" : "text-emerald-700"}`}>{margin.toFixed(2)}%</td>
-                                <td className="py-2.5 px-4 text-right text-slate-700 font-bold">${Number(m.gap).toLocaleString("es-AR", { minimumFractionDigits: 2 })}</td>
-                                <td className="py-2.5 px-4 text-right text-slate-900 font-black">{typeof m.suggested_price === "number" ? `$${m.suggested_price.toLocaleString("es-AR", { minimumFractionDigits: 2 })}` : "—"}</td>
-                                <td className="py-2.5 px-4 text-center">
-                                  {m.applied ? (
-                                    <div className="flex items-center justify-center gap-1 text-emerald-600 font-bold text-xs">
-                                      <CheckCircle2 className="h-4 w-4" /> APLICADO
-                                    </div>
-                                  ) : (
-                                    <button 
-                                      onClick={() => handleApplyPrice(m)}
-                                      className="bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold px-3 py-1 rounded-md shadow-sm transition-all active:scale-95 flex items-center gap-1 mx-auto"
-                                    >
-                                      <Zap className="h-3 w-3" /> APLICAR
-                                    </button>
-                                  )}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <p className="py-4 px-4 text-slate-500 text-sm">Sin filas en el último reporte.</p>
-                  )}
-                </CardContent>
-              </Card>
-            ) : (
-              <Card className="rounded-2xl border border-slate-200 bg-white">
-                <CardContent className="py-8 text-center text-slate-500 text-sm">
-                  Sin reporte de margen reciente. Ejecutá el Guardián para generar datos.
-                </CardContent>
-              </Card>
-            )}
-          </section>
-
+          
+          {/* HEADER PRINCIPAL */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mb-6">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
@@ -341,33 +317,36 @@ export default function DashboardPage() {
               <p className="text-slate-500 text-xs font-medium uppercase tracking-wider pl-10">Consola de Inteligencia Competitiva</p>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="hidden md:flex items-center gap-6 px-6 py-2 bg-slate-50 rounded-xl border border-slate-200">
-                <div className="text-center group">
-                  <p className="text-[10px] text-slate-500 uppercase font-semibold tracking-wide">Status</p>
-                  <p className="text-xs text-slate-700 font-bold flex items-center gap-1.5">
-                    <span className="h-2 w-2 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.4)]"></span>
-                    ACTIVE
-                  </p>
-                </div>
-                <div className="h-6 w-px bg-slate-200"></div>
-                <div className="text-center">
-                  <p className="text-[10px] text-slate-500 uppercase font-semibold tracking-wide">Health</p>
-                  <p className="text-xs text-blue-600 font-bold">{health?.overall_health || "98.2%"}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <div className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-2 ${tenant?.tier === 'pro' ? 'bg-blue-600 text-white shadow-sm hover:bg-blue-700 transition-colors' : 'bg-slate-100 text-slate-600 border border-slate-200'}`}>
-                  {tenant?.tier === 'pro' ? <Crown className="h-3.5 w-3.5" /> : null}
-                  {tenant?.tier || 'FREE'}
-                </div>
+            <div className="flex items-center gap-2">
+              <button 
+                id="selector-agro"
+                onClick={() => {
+                  console.log("🌾 Forzando cambio a AGRO - Fase 5");
+                  setActiveSector("agro");
+                }}
+                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all z-50 ${activeSector === "agro" ? "bg-emerald-600 text-white shadow-md shadow-emerald-500/20" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}
+              >
+                🌾 AGRO (ACTIVE)
+              </button>
+              <button 
+                id="selector-fashion"
+                onClick={() => {
+                  console.log("👕 Cambiando a FASHION");
+                  setActiveSector("fashion");
+                }}
+                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all z-50 ${activeSector === "fashion" ? "bg-blue-600 text-white shadow-md shadow-blue-500/20" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}
+              >
+                👕 FASHION
+              </button>
+              <div className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-2 ${tenant?.tier === 'pro' ? 'bg-slate-900 text-white shadow-sm hover:bg-slate-800 transition-colors' : 'bg-slate-100 text-slate-600 border border-slate-200'}`}>
+                {tenant?.tier === 'pro' ? <Crown className="h-3.5 w-3.5 text-amber-400" /> : null}
+                {tenant?.tier || 'FREE'}
               </div>
             </div>
           </div>
 
-          {/* Estado de Cuenta Antigravity - Modelo de Riqueza */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          {/* ESTADO DE CUENTA - FASE 4 */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Card className="bg-blue-600 text-white rounded-2xl shadow-xl overflow-hidden border-none transform hover:scale-[1.02] transition-all">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
@@ -379,7 +358,7 @@ export default function DashboardPage() {
                 <p className="text-2xl font-black">Plan Enterprise PRO</p>
                 <div className="flex items-center gap-2 mt-2">
                     <Badge className="bg-white/20 hover:bg-white/30 text-white border-none text-[10px] uppercase font-bold">ACTIVO</Badge>
-                    <span className="text-xs font-medium opacity-80">$29.900 / mes (Base)</span>
+                    <span className="text-xs font-medium opacity-80">$29.900 / mes</span>
                 </div>
               </CardContent>
             </Card>
@@ -395,7 +374,7 @@ export default function DashboardPage() {
             <div className="flex flex-col gap-4">
                <button 
                   onClick={() => {
-                    const top3 = [...(marginReport?.martyrs || [])]
+                    const top3 = [...warRows]
                         .sort((a, b) => b.gap - a.gap)
                         .slice(0, 3)
                         .map(m => `- ${m.sku}: +$${m.gap.toLocaleString()}`)
@@ -415,190 +394,132 @@ ${top3}
 Asegurando el "Profitability North Star" para la organización.
 `;
                     navigator.clipboard.writeText(report);
-                    alert("¡Reporte generado y copiado al portapapeles! Listo para walkthrough.md");
+                    alert("¡Reporte generado y copiado al portapapeles!");
                   }}
-                  className="bg-slate-900 text-white font-bold h-full rounded-2xl flex items-center justify-center gap-3 hover:bg-slate-800 active:scale-95 transition-all shadow-lg hover:shadow-slate-500/20"
+                  className="bg-slate-900 text-white font-bold h-full rounded-2xl flex items-center justify-center gap-3 hover:bg-slate-800 transition-all shadow-lg active:scale-95"
                >
-                 <ShieldCheck className="h-5 w-5 text-emerald-400" /> Generar Reporte Walkthrough
+                 <ShieldCheck className="h-5 w-5 text-emerald-400" /> Generar Walkthrough
                </button>
             </div>
           </div>
-          
-          {/* Radar de Oportunidades - Fase 4 */}
-          <div className="mb-8">
-            <ProfitGapWidget />
-          </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            {/* Left Column: Metrics & Alerts */}
-            <div className="lg:col-span-4 space-y-6">
-              <Card className="bg-white border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-                <CardHeader className="pb-3 border-b border-slate-100">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-2 tracking-tight">
-                      <AlertTriangle className="h-4.5 w-4.5 text-blue-600" />
-                      Intelligence Alerts
-                    </CardTitle>
-                    {alerts.length > 0 && (
-                      <Badge className="bg-blue-50 text-blue-600 border hover:bg-blue-100 border-blue-200 text-[10px] font-bold px-2 py-0.5">{alerts.length} NEW</Badge>
-                    )}
-                  </div>
-                  <CardDescription className="text-slate-500 text-xs mt-1">Market shifts detected by Antigravity Engine.</CardDescription>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <div className="max-h-[500px] overflow-y-auto w-full custom-scrollbar">
-                    {alerts.length > 0 ? (
-                      <div className="p-4 space-y-3">
-                        {alerts.map((alert, idx) => {
-                          const note = alert.metadata?.intelligence_note || "";
-                          const isCritical = note.includes("CRÍTICA");
-                          const isWarning = note.includes("ADVERTENCIA");
-
-                          let borderColor = "border-slate-200 hover:border-blue-300";
-                          let iconColor = "text-blue-500";
-                          let noteColor = "border-blue-200 text-slate-600 bg-blue-50";
-                          let badgeColor = "bg-slate-50 text-slate-700 border-slate-200";
-
-                          if (isCritical) {
-                            borderColor = "border-rose-200 hover:border-rose-300 bg-rose-50/30";
-                            iconColor = "text-rose-500";
-                            noteColor = "border-rose-200 text-rose-700 bg-rose-50";
-                            badgeColor = "bg-white text-rose-600 border-rose-200";
-                          } else if (isWarning) {
-                            borderColor = "border-amber-200 hover:border-amber-300 bg-amber-50/30";
-                            iconColor = "text-amber-500";
-                            noteColor = "border-amber-200 text-amber-700 bg-amber-50";
-                            badgeColor = "bg-white text-amber-600 border-amber-200";
-                          }
-
-                          return (
-                            <div key={idx} className={`p-4 bg-white rounded-xl border transition-all hover:shadow-sm group relative overflow-hidden ${borderColor}`}>
-                              <div className="absolute top-0 right-0 p-3 opacity-5 group-hover:opacity-10 transition-opacity">
-                                {alert.sector === 'pharmacy' ? <Pill className={`h-12 w-12 ${iconColor}`} /> : <ShoppingBag className={`h-12 w-12 ${iconColor}`} />}
-                              </div>
-                              <div className="flex items-start justify-between mb-2 relative z-10">
-                                <div className="space-y-1">
-                                  <p className={`text-[10px] font-bold uppercase tracking-wider ${iconColor}`}>{alert.sector}</p>
-                                  <h4 className="text-sm font-semibold text-slate-800 leading-tight tracking-tight">{alert.item}</h4>
-                                </div>
-                                <Badge className={`text-xs font-semibold px-2.5 py-0.5 ${badgeColor}`}>
-                                  {alert.price > 0 ? `$${alert.price.toLocaleString()}` : 'N/A'}
-                                </Badge>
-                              </div>
-                              {alert.metadata?.intelligence_note && (
-                                <div className={`mt-3 text-xs p-2.5 rounded-md border-l-2 flex flex-col items-start gap-1.5 relative z-10 ${noteColor}`}>
-                                  <div className="flex items-center gap-1.5 font-semibold">
-                                    <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                                    {isCritical ? "ACTION REQUIRED" : "REVIEW NEEDED"}
-                                  </div>
-                                  <span className="opacity-90 leading-snug">{alert.metadata.intelligence_note}</span>
-                                </div>
-                              )}
-                              <div className="mt-3 flex items-center justify-between text-[10px] text-slate-400 font-medium uppercase tracking-wider relative z-10">
-                                <span>{new Date(alert.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                <span className="flex items-center gap-1 text-blue-600 hover:text-blue-700 transition-colors cursor-pointer font-semibold">
-                                  DETAILS <ArrowRight className="h-3 w-3" />
-                                </span>
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    ) : (
-                      <div className="py-16 px-6 text-center flex flex-col items-center justify-center">
-                        <div className="h-14 w-14 bg-slate-50 border border-slate-100 rounded-full flex items-center justify-center mb-4 shadow-sm">
-                          <CheckCircle2 className="h-7 w-7 text-emerald-500" />
-                        </div>
-                        <h3 className="text-slate-800 font-semibold mb-1">Todo en orden</h3>
-                        <p className="text-slate-500 text-sm">No se detectaron anomalías en la organización.</p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+          {/* INDICADORES DE GANANCIA - Siempre Visibles */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className={`rounded-2xl border-2 p-6 md:p-8 text-center bg-red-500/15 border-red-500 text-red-900 shadow-lg shadow-red-500/10`}>
+              <p className="text-sm font-semibold uppercase tracking-wider opacity-90 mb-1">GAP de ganancia</p>
+              <h2 className="text-5xl md:text-6xl font-black tracking-tighter tabular-nums">
+                ${gapDisplay.toLocaleString("es-AR")}
+              </h2>
+              <p className="text-xs mt-2 opacity-80 uppercase font-bold tracking-tight">
+                {activeSector === "agro"
+                  ? "Pérdida potencial acumulada (Σ gap · productos críticos)"
+                  : "Oportunidad de optimización detectada"}
+              </p>
             </div>
 
-            {/* Right Column: Chart & Simulator */}
-            <div className="lg:col-span-8 space-y-6">
-              <Card className="bg-white border-slate-200 rounded-2xl shadow-sm h-[400px] flex flex-col overflow-hidden">
-                <CardHeader className="pb-3 border-b border-slate-100">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="space-y-1">
-                      <CardTitle className="text-lg font-bold text-slate-800 tracking-tight flex items-center gap-2">
-                        <TrendingUp className="h-4.5 w-4.5 text-blue-600" />
-                        Historical Price Velocity
+            <div className="rounded-2xl border-2 border-emerald-500 p-6 md:p-8 text-center bg-emerald-500/15 text-emerald-900 shadow-lg shadow-emerald-500/10">
+              <p className="text-sm font-semibold uppercase tracking-wider opacity-90 mb-1">Ya recuperado</p>
+              <h2 className="text-5xl md:text-6xl font-black tracking-tighter tabular-nums">
+                ${recoveredTotal.toLocaleString("es-AR")}
+              </h2>
+              <p className="text-xs mt-2 opacity-80 uppercase font-bold tracking-tight">Ganancia asegurada - Fase 4</p>
+            </div>
+          </div>
+
+          {/* CONTENIDO TÁCTICO — Mesa de guerra + tendencias */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div className="lg:col-span-12 space-y-6">
+              {showWarCard ? (
+                <Card className={`rounded-2xl shadow-sm overflow-hidden border-2 ${warCardBorderCritical ? "border-red-200 bg-red-50/50" : "border-amber-200 bg-amber-50/30"}`}>
+                  <CardHeader className="pb-3 border-b border-slate-100">
+                    <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-2 tracking-tight">
+                      Radar de Márgenes (Sector AGRO)
+                    </CardTitle>
+                    <CardDescription className="text-slate-500 text-xs mt-1">
+                      Último reporte: {marginReport?.latestFile || "—"}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <div className="max-h-[500px] overflow-y-auto custom-scrollbar">
+                      <table className="w-full text-sm">
+                        <thead className="bg-slate-50 sticky top-0 z-10 border-b">
+                          <tr>
+                            <th className="text-left py-3 px-4 font-semibold text-slate-700">SKU</th>
+                            <th className="text-right py-3 px-4 font-semibold text-slate-700">Costo</th>
+                            <th className="text-right py-3 px-4 font-semibold text-slate-700">Margen</th>
+                            <th className="text-right py-3 px-4 font-semibold text-slate-700">Stock</th>
+                            <th className="text-right py-3 px-4 font-semibold text-slate-700">Gap Total</th>
+                            <th className="text-right py-3 px-4 font-semibold text-slate-700">Sugerido</th>
+                            <th className="text-center py-3 px-4 font-semibold text-slate-700">Acción</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {warRows.map((m, idx) => (
+                            <tr key={idx} className={`border-b border-slate-100 ${m.applied ? "bg-emerald-100/50" : "bg-white"}`}>
+                              <td className="py-3 px-4 font-medium">{m.sku}</td>
+                              <td className="py-3 px-4 text-right">${Number(m.cost_supa).toLocaleString()}</td>
+                              <td className="py-3 px-4 text-right font-bold text-red-600">{Number(m.margin).toFixed(1)}%</td>
+                              <td className="py-3 px-4 text-right">{m.stock}</td>
+                              <td className="py-3 px-4 text-right font-black text-red-600">${Number(m.gap).toLocaleString()}</td>
+                              <td className="py-3 px-4 text-right font-black">${Number(m.suggested_price).toLocaleString()}</td>
+                              <td className="py-3 px-4 text-center">
+                                {m.applied ? (
+                                  <Badge className="bg-emerald-100 text-emerald-700">APLICADO</Badge>
+                                ) : (
+                                  <button onClick={() => handleApplyPrice(m)} className="bg-slate-900 text-white text-[10px] px-3 py-1 rounded font-bold">APLICAR</button>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card className="rounded-2xl p-8 text-center text-slate-500">Sin alertas críticas detectadas.</Card>
+              )}
+
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <div className="lg:col-span-4">
+                  <Card className="bg-white border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                    <CardHeader className="pb-3 border-b border-slate-100">
+                      <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-2 tracking-tight">
+                        <AlertTriangle className="h-4.5 w-4.5 text-blue-600" />
+                        Intelligence Alerts
                       </CardTitle>
-                      <CardDescription className="text-slate-500 text-xs">Sector: <span className="uppercase font-semibold text-slate-600">{activeSector}</span> | 24h Monitoring Interval</CardDescription>
-                    </div>
-                    <div className="flex gap-3 bg-slate-50 p-1.5 rounded-lg border border-slate-100 items-center">
-                      <span className="text-[10px] uppercase font-bold text-slate-400 pl-2">Rubro Activo</span>
-                      <div className="px-3 py-1 bg-white border border-blue-200 text-blue-600 font-bold text-xs rounded-md shadow-sm uppercase tracking-wider">
-                        {activeSector}
-                      </div>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="flex-1 p-6">
-                  <ResponsiveContainer width="100%" height="100%">
+                    </CardHeader>
+                    <CardContent className="p-4 max-h-[600px] overflow-y-auto">
+                      {alerts.length > 0 ? (
+                        <div className="space-y-3">
+                          {alerts.map((alert, idx) => (
+                            <div key={idx} className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                              <h4 className="text-xs font-bold text-slate-700">{alert.item}</h4>
+                              <p className="text-[10px] text-slate-500 mt-1">{alert.metadata?.intelligence_note}</p>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-slate-400 text-center py-8">No hay alertas activas.</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+                <div className="lg:col-span-8">
+                  <ResponsiveContainer width="100%" height={300}>
                     <AreaChart data={trends}>
-                      <defs>
-                        <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#2563eb" stopOpacity={0.2} />
-                          <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                      <XAxis
-                        dataKey="timestamp"
-                        stroke="#64748b"
-                        fontSize={11}
-                        tickMargin={10}
-                        tickLine={false}
-                        axisLine={false}
-                        tickFormatter={(str) => {
-                          const d = new Date(str);
-                          return isNaN(d.getTime()) ? '' : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                        }}
-                      />
-                      <YAxis
-                        stroke="#64748b"
-                        fontSize={11}
-                        tickLine={false}
-                        axisLine={false}
-                        tickFormatter={(val) => `$${val}`}
-                      />
-                      <Tooltip
-                        contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                        labelStyle={{ color: '#64748b', fontSize: '11px', fontWeight: 600, marginBottom: '4px' }}
-                        itemStyle={{ color: '#0f172a', fontWeight: 700, fontSize: '13px' }}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="price"
-                        stroke="#2563eb"
-                        strokeWidth={2.5}
-                        fillOpacity={1}
-                        fill="url(#colorPrice)"
-                      />
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                      <XAxis dataKey="timestamp" hide />
+                      <YAxis hide />
+                      <Tooltip />
+                      <Area type="monotone" dataKey="price" stroke="#2563eb" fill="#dbeafe" />
                     </AreaChart>
                   </ResponsiveContainer>
-                </CardContent>
-              </Card>
-
-              <SubscriptionGate
-                tier={tenant?.tier || 'free'}
-                onUpgrade={() => {
-                  fetch(`/api/checkout/${orgId}`, { method: 'POST' })
-                    .then(res => res.json())
-                    .then(data => { if (data.checkout_url) window.location.href = data.checkout_url; });
-                }}
-              >
-                <WhatIfSimulator tenantSlug={orgId} tenantTier={tenant?.tier || 'pro'} sector={activeSector} />
-              </SubscriptionGate>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </main>
-    </AuthGate>
   );
 }
