@@ -6,8 +6,8 @@ from dotenv import load_dotenv
 # Cargar variables de entorno
 load_dotenv()
 
-SUPABASE_URL = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
-SUPABASE_KEY = os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
+SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
+SUPABASE_KEY = os.getenv("VITE_SUPABASE_ANON_KEY")
 TENANT_ID = "fa60ff74-574a-48a4-8ec9-074dde3746aa"
 ORGANIZATION_ID = os.getenv("ORGANIZATION_ID", "kixnlqjuiqtodzdubydb") # Default org found in the remote Supabase project
 

@@ -6,3 +6,6 @@ node_modules/
 data/input_sample.csv
 temp_sim_result.json
 antigravity-core/.venv/
+
+.vercel
+.env*.local

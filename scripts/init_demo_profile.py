@@ -5,8 +5,8 @@ from dotenv import load_dotenv
 # Cargar variables de entorno
 load_dotenv()
 
-SUPABASE_URL = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
-SUPABASE_KEY = os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
+SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
+SUPABASE_KEY = os.getenv("VITE_SUPABASE_ANON_KEY")
 
 def init_demo_user():
     if not SUPABASE_URL or not SUPABASE_KEY:
