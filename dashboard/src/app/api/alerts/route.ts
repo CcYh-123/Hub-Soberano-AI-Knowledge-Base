@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
             .eq('id', user.id)
             .single();
 
-        const orgId = profile?.organization_id;
+        const orgId = profile?.organization_id || "kixnlqjuiqtodzdubydb";
 
         if (!orgId) {
             return NextResponse.json({ alerts: [] });
