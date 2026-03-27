@@ -14,9 +14,11 @@ export async function GET(
         const { slug, sector } = await params;
         const tenantId = TENANT_MAP[slug] ?? slug;
 
-        // Leer DB via API interna de Python — fallback a datos simulados
+        const apiBase = (process.env.PYTHON_API_URL || "http://localhost:8000").replace(/\/$/, "");
+
+        // Leer DB via API interna de Python
         const res = await fetch(
-            `http://localhost:8000/trends/${tenantId}/${sector}`
+            `${apiBase}/trends/${tenantId}/${sector}`
         ).catch(() => null);
 
         if (res && res.ok) {

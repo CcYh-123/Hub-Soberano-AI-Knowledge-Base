@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 export const dynamic = "force-dynamic";
 
-const API_BASE = process.env.PYTHON_API_URL || "http://localhost:8000";
+const API_BASE = (process.env.PYTHON_API_URL || "http://localhost:8000").replace(/\/$/, "");
 
 export async function GET(
     request: NextRequest,

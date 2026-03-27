@@ -104,6 +104,8 @@ export default function DashboardPage() {
         
         // Fetch Tenant/Profile
         const { data: { user } } = await supabase.auth.getUser();
+        let currentOrgId = process.env.NEXT_PUBLIC_ORGANIZATION_ID || orgId;
+
         if (user) {
           const { data: profile } = await supabase
             .from('profiles')
@@ -117,18 +119,19 @@ export default function DashboardPage() {
               tier: (profile.tier as any) || 'pro',
               sector: profile.sector
             });
-            setOrgId(profile.org_id || "demo-saas");
-            // If user has a locked sector, we might want to respect it, 
-            // but for Phase 5 we default to agro if it's the first load
+            if (profile.organization_id) {
+              currentOrgId = profile.organization_id;
+              setOrgId(profile.organization_id);
+            }
           }
         }
 
         // Parallel Fetch for widgets
         const [alertsRes, healthRes, trendsRes, tenantRes, reportRes] = await Promise.all([
           fetch(`/api/alerts?sector=${currentSector}`),
-          fetch(`/api/health?org_id=${orgId}`),
-          fetch(`/api/trends?sector=${currentSector}`),
-          fetch(`/api/tenant/${orgId}`),
+          fetch(`/api/health?org_id=${currentOrgId}`),
+          fetch(`/api/trends/${currentOrgId}/${currentSector}`),
+          fetch(`/api/tenant/${currentOrgId}`),
           // API App Router: dashboard/src/app/api/latest-report/route.ts → sector=agro devuelve { gap, recuperado, products }
           fetch(`/api/latest-report?sector=${currentSector}`)
         ]);

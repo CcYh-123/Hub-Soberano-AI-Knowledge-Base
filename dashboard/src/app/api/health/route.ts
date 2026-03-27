@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const API_BASE = process.env.PYTHON_API_URL || "http://localhost:8000";
+const API_BASE = (process.env.PYTHON_API_URL || "http://localhost:8000").replace(/\/$/, "");
 
 export async function GET() {
     try {
