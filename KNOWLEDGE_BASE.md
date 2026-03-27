@@ -247,3 +247,31 @@
 | Glifosato Martir | -7.35% | $67228.21 | CRITICO | $161.02 |
 
 **Acción sugerida**: Ejecutar `price_rule_executor.py --apply`
+
+---
+## 🚨 REPORTE DE PROTECCIÓN DE MARGEN - SECTOR AGRO — 2026-03-27 13:04 UTC
+**Status**: ALERT  
+**Críticos**: 1  
+**Gap de Ganancia total**: $67,228.21/unidad  
+
+> Nota: Valores sujetos a variabilidad logística y tipo de cambio.
+
+| Producto | Margen% | Gap de Ganancia/U | Nivel | Precio Sugerido |
+|---|---|---|---|---|
+| Glifosato Martir | -7.35% | $67228.21 | CRITICO | $161.02 |
+
+**Acción sugerida**: Ejecutar `price_rule_executor.py --apply`
+
+---
+## 🚨 REPORTE DE PROTECCIÓN DE MARGEN - SECTOR AGRO — 2026-03-27 13:05 UTC
+**Status**: ALERT  
+**Críticos**: 1  
+**Gap de Ganancia total**: $67,228.21/unidad  
+
+> Nota: Valores sujetos a variabilidad logística y tipo de cambio.
+
+| Producto | Margen% | Gap de Ganancia/U | Nivel | Precio Sugerido |
+|---|---|---|---|---|
+| Glifosato Martir | -7.35% | $67228.21 | CRITICO | $161.02 |
+
+**Acción sugerida**: Ejecutar `price_rule_executor.py --apply`
